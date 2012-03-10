@@ -1,0 +1,9 @@
+
+AT_INIT(test_zuse)
+AT_TESTED(../src/zuse)
+AT_SETUP(test_zuse)
+AT_KEYWORDS()
+AT_DATA(test_start.es, test0.es, test1.es)
+AT_CHECK(echo 1)
+AT_CHECK(../src/zuse test_start.es)
+AT_CLEANUP

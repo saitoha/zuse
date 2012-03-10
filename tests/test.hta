@@ -1,0 +1,36 @@
+
+
+<html xmlns:v="vml">
+<head>
+<style>
+    v\:*
+    {
+        behavior: url(#default#VML);
+        height: 100px;
+        position: absolute;
+        top: 50px;
+        left: 100px;
+    }
+</style>
+<script language="zuse">
+var a=9;
+onload = function(){
+setInterval(function(){$rect0.rotation+=6}, 1000)
+setInterval(function(){$rect1.rotation+=6}, 60 * 1000)
+setInterval(function(){$rect2.rotation+=6}, 60 * 60 * 1000)
+setInterval(function(){
+    $oval.filters.blendTrans.apply();
+    $oval.style.visibility = ++a % 2 ? 'visible': 'hidden'; $oval.filters.blendTrans.Play();}, 1000)
+}
+</script>
+</head>
+<body style="background-color: whilte">
+  <body>
+    <v:oval id='$oval' flag='1' style="width: 100px; filter:blendTrans(duration=1); height: 100px; position: absolute; top: 50px; left: 50px;" fillcolor='red' strokecolor='blue' strokeweight='5'/>
+    <v:shape id='$rect0' path="m 0, 500 l 0, 1000 x" strokecolor='green' fillcolor='pink' strokeweight='1px' />
+    <v:shape id='$rect1' path="m 0, 500 l 0, 1000 x" strokecolor='green' fillcolor='pink' strokeweight='1px' />
+    <v:shape id='$rect2' path="m 0, 500 l 0, 1000 x" strokecolor='green' fillcolor='pink' strokeweight='1px' />
+  </body>
+
+</body>
+</html>

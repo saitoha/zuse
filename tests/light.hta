@@ -1,0 +1,146 @@
+<html>
+<hta:application scroll="no">
+</hta:application>
+<head>
+<style type="text/css">
+#STAGE	{ position:absolute; top:0px; left:0px; background-color:#ffffff; filter:light(); }
+</style>
+<script language="zuse"><!--
+var BALLMAX = 10;
+var BALLS = new Array();
+var WALLTOP;
+var WALLBOTTOM;
+var WALLLEFT;
+var WALLRIGHT;
+
+var ballAttribute = function() {
+	this.x = 0;
+	this.y = 0;
+	this.z = 12;
+	this.sx = 0;
+	this.sy = 0;
+	this.speed = 0;
+	this.strength = 200;
+}
+var getRandom = function(a, b){ return Math.floor(Math.random() * a) + b; }
+var animLight = function(){}
+var moveBall = function() {
+var i, nn, w;
+var hitx, hity;
+
+	for(i = 0; i < BALLMAX; i++) {
+		nn = BALLS[i].x + BALLS[i].sx * BALLS[i].speed;
+
+		switch(BALLS[i].sx) {
+		case 1:
+		case 2:
+			w = WALLRIGHT;
+			hitx = (nn >= w);
+			break;
+		case -1:
+		case -2:
+			w = WALLLEFT;
+			hitx = (nn <= w);
+			break;
+		default:
+			nn = BALLS[i].x;
+			hitx = false;
+			break;
+		}
+
+		if(hitx) {
+			BALLS[i].x = w;
+			if(getRandom(100, 0) < 50) {
+				BALLS[i].sx = - BALLS[i].sx;
+			}else{
+				w = (BALLS[i].sx < 0)? 1 : -1;
+				BALLS[i].sx = (Math.abs(BALLS[i].sx) == 1)? 2 : 1;
+				BALLS[i].sx = BALLS[i].sx * w;
+			}
+			BALLS[i].sy = (BALLS[i].sy == 0) ? ((getRandom(100, 0) < 50) ? -1 : 1) : BALLS[i].sy;
+
+		}else{
+			BALLS[i].x = nn;
+		}
+
+
+		nn = BALLS[i].y + BALLS[i].sy * BALLS[i].speed;
+		switch(BALLS[i].sy) {
+		case 1:
+		case 2:
+			w = WALLBOTTOM;
+			hity = (nn >= w);
+			break;
+		case -1:
+		case -2:
+			w = WALLTOP;
+			hity = (nn <= w);
+			break;
+		default:
+			nn = BALLS[i].y;
+			hity = false;
+			break;
+		}
+		if(hity) {
+			BALLS[i].y = w;
+			if(getRandom(100, 0) < 50) {
+				BALLS[i].sy = - BALLS[i].sy;
+			}else{
+				w = (BALLS[i].sy < 0)? 1 : -1;
+				BALLS[i].sy = (Math.abs(BALLS[i].sy) == 1)? 2 : 1;
+				BALLS[i].sy = BALLS[i].sy * w;
+			}
+			BALLS[i].sx = (BALLS[i].sx == 0) ? ((getRandom(100, 0) < 50) ? -1 : 1) : BALLS[i].sx;
+		}else{
+			BALLS[i].y = nn;
+		}
+
+		STAGE.filters['light'].movelight(i, BALLS[i].x, BALLS[i].y, BALLS[i].z * ((hitx || hity)? getRandom(6, 3) : 1), true);
+		if((hitx || hity) && (getRandom(100, 0) < 50)) BALLS[i].speed = getRandom(5, 5);
+	}
+//alert(moveBall)
+//	setTimeout("alert()", 50);
+	setTimeout(moveBall, 50);
+}
+
+
+var resizeObject = function() {
+var cw = DOC.clientWidth;
+var ch = DOC.clientHeight;
+	STAGE.style.width = cw;
+	STAGE.style.height = ch;
+	WALLTOP = 5;
+    WALLBOTTOM = ch - 5;
+    WALLLEFT = 5;
+    WALLRIGHT = cw - 5;
+}
+
+
+function init() {
+var sz = 200;
+var i;
+	window.resizeTo(sz, sz);
+	window.resizeTo((sz - DOC.clientWidth) + sz, (sz - DOC.clientHeight) + sz);
+	resizeObject();
+	for(i = 0; i < BALLMAX; i++) {
+		BALLS[i] = new ballAttribute();
+		BALLS[i].x = (sz / 2) - 50 * Math.cos(i * (360 / BALLMAX) * Math.PI / 180);
+		BALLS[i].y = (sz / 2) - 50 * Math.sin(i * (360 / BALLMAX) * Math.PI / 180);
+		BALLS[i].sx = (sz / 2) - BALLS[i].x;
+		BALLS[i].sx = (BALLS[i].sx == 0) ? 0 : ((BALLS[i].sx < 0) ? -1 : 1);
+		BALLS[i].sy = (sz / 2) - BALLS[i].y;
+		BALLS[i].sy = (BALLS[i].sy == 0) ? 0 : ((BALLS[i].sy < 0) ? -1 : 1);
+		BALLS[i].speed = getRandom(5, 5);
+		STAGE.filters['light'].addpoint(BALLS[i].x, BALLS[i].y, BALLS[i].z, getRandom(115, 140), getRandom(115, 140), getRandom(115, 140), BALLS[i].strength);
+
+	}
+	setTimeout("moveBall()", 1500);
+}
+
+-->
+</script>
+</head>
+<body id="DOC" onload="init();" onresize="resizeObject();">
+<div id="STAGE"></div>
+</body>
+</html>
