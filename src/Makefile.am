@@ -4,6 +4,7 @@
 # $Id$
 #
 
+
 bin_PROGRAMS = zuse
 zuse_CXXFLAGS = -g -O0 -Wall $(genericCPPFLAGS)
 zuse_LDLIBS = $(genericLDLIBS)
