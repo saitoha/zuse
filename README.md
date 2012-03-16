@@ -15,6 +15,6 @@ Supported platforms
 INSTALL
 -------
 
-./configure && make
-sudo make install
+    ./configure && make
+    sudo make install
 
