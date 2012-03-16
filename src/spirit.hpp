@@ -4,6 +4,7 @@
  * Here is modified and partically rewited by Hayaki Saito <user@zuse.jp>.
  * ***** END LICENSE BLOCK ***** */
 
+
 namespace ecmascript { namespace spirit {
 
     template <typename T>

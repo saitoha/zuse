@@ -16,6 +16,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
+
 #include <SDL/SDL.h>
 #include "types.hpp"
 

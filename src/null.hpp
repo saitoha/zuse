@@ -16,6 +16,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
+
 //////////////////////////////////////////////////////////////////////////
 //
 // definition and implementation of Null type object, es_null.

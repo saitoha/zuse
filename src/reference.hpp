@@ -16,6 +16,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
+
 namespace ecmascript {
 
     template <typename stringT>

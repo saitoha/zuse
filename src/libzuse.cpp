@@ -16,6 +16,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
+
 #ifndef __cplusplus
 #error A c++ compiler is required.
 #endif

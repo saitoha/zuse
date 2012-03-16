@@ -21,6 +21,7 @@
  * $HeadURL: svn+ssh://zuse.jp/svn/zuse/tags/zuse-0.1.4/src/x86.hpp $
  */
 
+
 #if ES_TEST_JIT
 
 namespace ecmascript { namespace generator { namespace x86 {
