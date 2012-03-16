@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -178,31 +177,31 @@ namespace ecmascript {
         INumber& __stdcall abs(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_abs(value.operator double()));
+                std::abs(value.operator double()));
         }
 
         INumber& __stdcall acos(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_acos(value.operator double()));
+                std::acos(value.operator double()));
         }
 
         INumber& __stdcall asin(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_asin(value.operator double()));
+                std::asin(value.operator double()));
         }
 
         INumber& __stdcall atan(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_atan(value.operator double()));
+                std::atan(value.operator double()));
         }
 
         INumber& __stdcall atan2(IPrimitive& x, IPrimitive& y) const
         {
             return *new es_number<string_t>(
-                (base_services::es_atan2)(
+                (std::atan2)(
                     x.operator double(),
                     y.operator double()));
         }
@@ -210,31 +209,31 @@ namespace ecmascript {
         INumber& __stdcall ceil(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_ceil(value.operator double()));
+                std::ceil(value.operator double()));
         }
 
         INumber& __stdcall cos(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_cos(value.operator double()));
+                std::cos(value.operator double()));
         }
 
         INumber& __stdcall exp(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_exp(value.operator double()));
+                std::exp(value.operator double()));
         }
 
         INumber& __stdcall floor(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_floor(value.operator double()));
+                std::floor(value.operator double()));
         }
 
         INumber& __stdcall log(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_log(value.operator double()));
+                std::log(value.operator double()));
         }
 
         INumber& __stdcall max_(IPrimitive& arguments) const
@@ -245,7 +244,7 @@ namespace ecmascript {
             IPrimitive& argument1 = arguments[0];
             IPrimitive& argument2 = arguments[1];
             return *new es_number<string_t>(
-                (base_services::es_max)(
+                (std::max)(
                     argument1.operator double(),
                     argument2.operator double()));
         }
@@ -258,7 +257,7 @@ namespace ecmascript {
             IPrimitive& argument1 = arguments[0];
             IPrimitive& argument2 = arguments[1];
             return *new es_number<string_t>(
-                (base_services::es_min)(
+                (std::min)(
                     argument1.operator double(),
                     argument2.operator double()));
         }
@@ -266,37 +265,37 @@ namespace ecmascript {
         INumber& __stdcall pow(IPrimitive& x, IPrimitive& y) const
         {
             return *new es_number<string_t>(
-                base_services::es_pow(x.operator double(), y.operator double()));
+                std::pow(x.operator double(), y.operator double()));
         }
 
         INumber& __stdcall random() const
         {
             return *new es_number<string_t>(
-                double(base_services::es_rand()) / RAND_MAX);
+                double(std::rand()) / RAND_MAX);
         }
 
         INumber& __stdcall round(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_floor(value.operator double() + .5));
+                std::floor(value.operator double() + .5));
         }
 
         INumber& __stdcall sin(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_sin(value.operator double()));
+                std::sin(value.operator double()));
         }
 
         INumber& __stdcall sqrt(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_sqrt(value.operator double()));
+                std::sqrt(value.operator double()));
         }
 
         INumber& __stdcall tan(IPrimitive& value) const
         {
             return *new es_number<string_t>(
-                base_services::es_tan(value.operator double()));
+                std::tan(value.operator double()));
         }
     };
 

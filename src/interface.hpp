@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -283,6 +282,7 @@ namespace ecmascript {
 
 #if defined(__MINGW32__) && !defined(__CYGWIN__)
 namespace std {
+    typedef std::basic_string<wchar_t> wstring;
 }
 #endif // defined(__MINGW__) && !defined(__CYGWIN__)
 
@@ -385,6 +385,7 @@ namespace ecmascript {
     : baseT
     {
         enum { vtsize = baseT::vtsize + 5 };
+        typedef std::basic_string<wchar_t> string_t;
         virtual IPrimitive& __stdcall get_value__() = 0;
         virtual IPrimitive& __stdcall get__(const_string_t const&) = 0;
         virtual IPrimitive& __stdcall get_by_value__(IPrimitive const&) = 0;
@@ -529,12 +530,13 @@ namespace ecmascript {
     struct INativeTypeConversion
     : baseT
     {
-        enum { vtsize = baseT::vtsize + 8 };
-        typedef es_const_string<wchar_t> string_t;
+        enum { vtsize = baseT::vtsize + 9 };
+        typedef std::basic_string<wchar_t> string_t;
         typedef es_const_string<wchar_t> const_string_t;
         virtual __stdcall operator bool() const = 0;
         virtual operator double() const = 0;
         virtual operator const_string_t const() const = 0;
+        virtual operator string_t const() const = 0;
         virtual operator ecmascript::integer_t() const = 0;
         virtual operator ecmascript::int32_t() const = 0;
         virtual operator ecmascript::uint32_t() const = 0;
@@ -546,11 +548,12 @@ namespace ecmascript {
             verb_operator_bool                 = baseT::vtsize + 0,
             verb_operator_double               = baseT::vtsize + 1,
             verb_operator_const_string_t_const = baseT::vtsize + 2,
-            verb_operator_integer_t            = baseT::vtsize + 3,
-            verb_operator_int32_t              = baseT::vtsize + 4,
-            verb_operator_uint32_t             = baseT::vtsize + 5,
-            verb_operator_uint16_t             = baseT::vtsize + 6,
-            verb_operator_es_attributes_const  = baseT::vtsize + 7,
+            verb_operator_string_t_const       = baseT::vtsize + 3,
+            verb_operator_integer_t            = baseT::vtsize + 4,
+            verb_operator_int32_t              = baseT::vtsize + 5,
+            verb_operator_uint32_t             = baseT::vtsize + 6,
+            verb_operator_uint16_t             = baseT::vtsize + 7,
+            verb_operator_es_attributes_const  = baseT::vtsize + 8,
         };
     };
 
@@ -900,6 +903,7 @@ namespace ecmascript {
             IBinaryBitwiseOperators<
             IAssignmentOperators<
             IEmpty> > > > > > > > > > > > > > > > > > > > base_t;
+        typedef std::basic_string<wchar_t> string_t;
         enum { id = VT::Primitive };
         enum { vtsize = base_t::vtsize };
 

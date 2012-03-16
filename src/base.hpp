@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -37,16 +36,29 @@ namespace ecmascript { namespace base_classes {
     struct es_immutable_object
     : public baseT
     {
-        ecmascript::uint32_t addref__() throw() { return 0; }
+        ecmascript::uint32_t addref__() throw()
+        {
+            return 0;
+        }
 
-        virtual ecmascript::uint32_t release__() throw() { return 0; }
+        virtual ecmascript::uint32_t release__() throw()
+        {
+            return 0;
+        }
 
-        bool collect__() throw() { return false; }
+        bool collect__() throw()
+        {
+            return false;
+        }
 
     protected:
-        es_immutable_object() throw() {}
+        es_immutable_object() throw()
+        {
+        }
 
-        virtual ~es_immutable_object() throw() {}
+        virtual ~es_immutable_object() throw()
+        {
+        }
 
     };
 
@@ -58,31 +70,37 @@ namespace ecmascript { namespace base_classes {
     struct es_collectable_object
     : public baseT
     {
-        typedef ecmascript::uint32_t counter_t;
-
-        es_collectable_object() throw() : counter_(0) {}
-
-        counter_t addref__() throw() { return ++counter_; }
-
-        counter_t release__() throw()
+        es_collectable_object() throw()
+        : reference_counter_(0)
         {
-            ES_ASSERT(counter_ > 0);
-            if (0 != --counter_)
-                return counter_;
+        }
+
+        ecmascript::uint32_t addref__() throw()
+        {
+            return ++ reference_counter_;
+        }
+
+        ecmascript::uint32_t release__() throw()
+        {
+            ES_ASSERT(reference_counter_ > 0);
+            if (0 != --reference_counter_)
+                return reference_counter_;
             delete this;
             return 0;
         }
 
         bool collect__() throw()
         {
-            return counter_ == 0 ? delete this, true: false;
+            return reference_counter_ == 0 ? delete this, true: false;
         }
 
     protected:
-        virtual ~es_collectable_object() throw() {}
+        virtual ~es_collectable_object() throw()
+        {
+        }
 
     private:
-        counter_t counter_;
+        ecmascript::uint32_t reference_counter_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -208,7 +226,9 @@ namespace ecmascript { namespace base_classes {
 
         void set_scope__(IPrimitive&)
         {
-            ES_ABORT(
+            ES_ASSERT(
+                !"'es_primitive_base_services::set_scope__' is not implemented.");
+            throw std::logic_error(
                 "'es_primitive_base_services::set_scope__' is not implemented.");
         }
 
@@ -216,14 +236,16 @@ namespace ecmascript { namespace base_classes {
             IPrimitive& /*this_arg*/, 
             IPrimitive& /*arguments*/)
         {
-            return *new es_native_error<string_t>(
+            throw *new es_native_error<string_t>(
                 L"'es_primitive_base_services::call__' is not implemented.");
         }
 
         IPrimitive& __stdcall construct__(IPrimitive&)
         {
-            return *new es_native_error<string_t>(
-                L"'es_primitive_base_services::construct__' is not implemented.");
+            ES_ASSERT(
+                !"'es_primitive_base_services::construct__' is not implemented.");
+            throw std::logic_error(
+                "'es_primitive_base_services::construct__' is not implemented.");
         }
 
         IPrimitive& __stdcall get_value__()
@@ -233,8 +255,10 @@ namespace ecmascript { namespace base_classes {
 
         IBoolean& has_instance__(IPrimitive const& value) const
         {
-            return *new es_native_error<string_t>(
-                L"'es_primitive_base_services::has_instance__' is not implemented.");
+            ES_ASSERT(
+                !"'es_primitive_base_services::has_instance__' is not implemented.");
+            throw std::logic_error(
+                "'es_primitive_base_services::has_instance__' is not implemented.");
         }
 
         bool has_property__(const_string_t const& key)
@@ -256,47 +280,55 @@ namespace ecmascript { namespace base_classes {
 // IEnumProperty
         IPrimitive& __stdcall reset__()
         {
-            return *new es_native_error<string_t>(
-                L"'es_primitive_base_services::reset__' is not implemented.");
+            ES_ASSERT(
+                !"'es_primitive_base_services::reset__' is not implemented.");
+            throw std::logic_error(
+                "'es_primitive_base_services::reset__' is not implemented.");
         }
 
         IPrimitive& __stdcall next__()
         {
-            return *new es_native_error<string_t>(
-                L"'es_primitive_base_services::next__' is not implemented.");
+            ES_ASSERT(
+                !"'es_primitive_base_services::next__' is not implemented.");
+            throw std::logic_error(
+                "'es_primitive_base_services::next__' is not implemented.");
         }
 
         void __stdcall push__(IPrimitive& value)
         {
-            ES_ABORT(
+            ES_ASSERT(
+                !"'es_primitive_base_services::push__' is not implemented.");
+            throw std::logic_error(
                 "'es_primitive_base_services::push__' is not implemented.");
         }
 
         IPrimitive& operator [](ecmascript::uint32_t index)
         {
-            return *new es_native_error<string_t>(
-                L"'es_primitive_base_services::operator []' is not implemented.");
+            ES_ASSERT(
+                !"'es_primitive_base_services::operator []' is not implemented.");
+            throw std::logic_error(
+                "'es_primitive_base_services::operator []' is not implemented.");
         }
 
         ecmascript::uint32_t length__()
         {
-            ES_ABORT("not implemented: length__");
+            throw std::runtime_error("not implemented: length__");
         }
 
         IPrimitive ** begin__()
         {
-            ES_ABORT("not implemented: begin__");
+            throw std::runtime_error("not implemented: begin__");
         }
 
 // postfix operators
         IPrimitive& __stdcall postfix_inc__()
         {
-            return *new es_native_error<string_t>(L"bad postfix increment");
+            throw std::runtime_error("bad postfix increment");
         }
 
         IPrimitive& __stdcall postfix_dec__()
         {
-            return *new es_native_error<string_t>(L"bad postfix decrement");
+            throw std::runtime_error("bad postfix decrement");
         }
 
 // unary operators
@@ -314,7 +346,7 @@ namespace ecmascript { namespace base_classes {
 
         IString& __stdcall typeof__() const
         {
-            return *new es_native_error<string_t>(L"not implemented: typeof");
+            throw std::runtime_error("not implemented: typeof");
         }
 
     // unary operators
@@ -456,7 +488,7 @@ namespace ecmascript { namespace base_classes {
 // equality operations
         IBoolean& __stdcall eq__(IPrimitive const& rhs) const
         {
-            return *new es_native_error<string_t>(L"not implemented: eq__");
+            throw std::logic_error("not implemented: eq__");
         }
 
         IBoolean& __stdcall ne__(IPrimitive const& rhs) const
@@ -466,7 +498,7 @@ namespace ecmascript { namespace base_classes {
 
         IBoolean& __stdcall strict_eq__(IPrimitive const& rhs) const
         {
-            return *new es_native_error<string_t>(L"not implemented: strict_eq__");
+            throw std::logic_error("not implemented: strict_eq__");
         }
 
         IBoolean& __stdcall strict_ne__(IPrimitive const& rhs) const
@@ -496,62 +528,62 @@ namespace ecmascript { namespace base_classes {
 // assignment operators
         IPrimitive& __stdcall assign__(IPrimitive& rhs)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_mul__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_div__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_mod__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_plus__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_minus__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_shl__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_sar__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_shr__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_and__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_xor__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
         IPrimitive& __stdcall assign_or__(IPrimitive const&)
         {
-            return *new es_native_error<string_t>(L"Cannot assign to ''");
+            throw std::runtime_error("Cannot assign to ''");
         }
 
 // type conversion
@@ -597,7 +629,7 @@ namespace ecmascript { namespace base_classes {
             {
             case VT::Undefined:
             case VT::Null:
-                return *new es_type_error<string_t>(L"TypeError: ToObject");
+                throw std::runtime_error("TypeError: ToObject");
             default:
                 object.put__(L"value", *this);
             }
@@ -607,17 +639,22 @@ namespace ecmascript { namespace base_classes {
 // native type conversion
         __stdcall operator bool() const
         {
-            ES_ABORT("cannnot cast to bool.");
+            throw std::runtime_error("cannnot cast to bool.");
         }
 
         operator double() const
         {
-            ES_ABORT("cannnot cast to double.");
+            throw std::runtime_error("cannnot cast to double.");
         }
 
         operator const_string_t const() const
         {
-            ES_ABORT("cannnot cast to es_const_string.");
+            throw std::runtime_error("cannnot cast to es_const_string.");
+        }
+
+        operator string_t const() const
+        {
+            throw std::runtime_error("cannnot cast to string_t.");
         }
 
         operator ecmascript::integer_t() const
@@ -633,22 +670,22 @@ namespace ecmascript { namespace base_classes {
 
         operator ecmascript::int32_t() const
         {
-            ES_ABORT("cannnot cast to ecmascript::int32_t.");
+            throw std::runtime_error("cannnot cast to ecmascript::int32_t.");
         }
 
         operator ecmascript::uint32_t() const
         {
-            ES_ABORT("cannnot cast to ecmascript::uint16_t.");
+            throw std::runtime_error("cannnot cast to ecmascript::uint16_t.");
         }
 
         operator ecmascript::uint16_t() const
         {
-            ES_ABORT("cannnot cast to ecmascript::uint16_t.");
+            throw std::runtime_error("cannnot cast to ecmascript::uint16_t.");
         }
 
         operator es_attributes const&() const
         {
-            ES_ABORT("cannnot cast to es_attributes");
+            throw std::runtime_error("cannnot cast to es_attributes");
         }
 
     protected:
@@ -754,7 +791,7 @@ namespace ecmascript { namespace base_classes {
 // IObfect implementation
         IFunction const& __stdcall constructor() const
         {
-            return *new es_native_error<string_t>(L"not imiplemented: constructor");
+            throw std::logic_error("not imiplemented: constructor");
         }
 
         IString const& __stdcall toString() const
@@ -787,7 +824,7 @@ namespace ecmascript { namespace base_classes {
         IBoolean& __stdcall propertyIsEnumerable(
             IPrimitive const& property_name)
         {
-            return *new es_native_error<string_t>(L"not implemented");
+            throw std::runtime_error("not implemented");
         }
 
 // IReferenceCounting
@@ -887,7 +924,7 @@ namespace ecmascript { namespace base_classes {
             case VT::String:
                 return this->ToString();
             }
-            return *new es_native_error<string_t>(L"es_object_base_services::ToPrimitive: bad hint");
+            throw std::runtime_error("es_object_base_services::ToPrimitive: bad hint");
         }
 
         IPrimitive& ToObject()
@@ -914,6 +951,17 @@ namespace ecmascript { namespace base_classes {
                 for (ws = ws + it->first + L": \n"; ++it != property_map_.end();)
                     if (VT::Undefined != it->second.type__())
                         ws = ws + L"," + it->first + L": \n";
+            return ws + L"}";
+        }
+
+        operator string_t const() const
+        {
+            string_t ws = L"{\n";
+            typename map_t::const_iterator it = property_map_.begin();
+            if (it != property_map_.end())
+                for (ws += it->first + L": \n"; ++it != property_map_.end();)
+                    if (VT::Undefined != it->second.type__())
+                        ws += L"," + it->first + L": \n";
             return ws + L"}";
         }
 
@@ -984,7 +1032,7 @@ namespace ecmascript { namespace base_classes {
 
         void __stdcall set_prototype__(IPrimitive& given_prototype)
         {
-            ES_ABORT("not implemented: set_prototype");
+            throw std::logic_error("not implemented: set_prototype");
         }
 
     // IUnaryOperations
@@ -996,17 +1044,17 @@ namespace ecmascript { namespace base_classes {
     // IFunction
         IPrimitive& __stdcall apply(IPrimitive&, IPrimitive&)
         {
-            return *new es_native_error<string_t>(L"not implemented: apply");
+            throw std::logic_error("not implemented: apply");
         }
 
         IPrimitive& __stdcall call(IPrimitive&)
         {
-            return *new es_native_error<string_t>(L"not implemented: call");
+            throw std::logic_error("not implemented: call");
         }
 
         INumber& __stdcall length() const
         {
-            return es_native_error<string_t>(L"not implemented: length 1");
+            throw std::logic_error("not implemented: length 1");
         }
 
         IPrimitive& __stdcall prototype()

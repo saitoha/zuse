@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 namespace ecmascript { namespace {
@@ -59,9 +58,9 @@ namespace ecmascript { namespace {
     //
     struct es_sys
     : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<ISys, const_string_t> >
+        base_classes::es_object_impl<ISys, std::wstring> >
     {
-        typedef const_string_t string_t;
+        typedef std::wstring string_t;
         typedef string_t::value_type char_type;
 
         es_sys() throw()
@@ -85,7 +84,7 @@ namespace ecmascript { namespace {
                 = arg.operator const_string_t const();
             if (!es_abspath(
                 given_path.c_str(), path, sizeof(path) / sizeof(path[0])))
-                return *new es_native_error<string_t>(L"abspath");
+                throw std::runtime_error("abspath");
             return *new es_string<string_t>(path);
         }
 
@@ -94,7 +93,7 @@ namespace ecmascript { namespace {
             using namespace base_services;
             char_type path[ES_MAX_PATH * 2];
             if (!es_getcwd(path, sizeof(path) / sizeof(path[0])))
-                return *new es_native_error<string_t>(L"getcwd");
+                throw std::runtime_error("getcwd");
             return *new es_string<string_t>(path);
         }
 
@@ -119,7 +118,7 @@ namespace ecmascript { namespace {
             box.p = es_dynamic_load(
                 given_argument.operator const_string_t const().c_str());
             if (0 == box.function)
-                return *new es_native_error<string_t>(L"cannot open");	
+                throw es_native_error<string_t>(L"cannot open");	
             IPrimitive *p_constructor = box.function();
             ES_ASSERT(0 != p_constructor);
             return *p_constructor;

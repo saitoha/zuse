@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 #include <SDL/SDL.h>
@@ -83,9 +82,9 @@ namespace ecmascript {
     //
     struct es_sdl
     : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<ISdl, const_string_t> >
+        base_classes::es_object_impl<ISdl, std::wstring> >
     {
-        typedef const_string_t string_t;
+        typedef std::wstring string_t;
         typedef string_t::value_type char_type;
 
 // constructor

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,22 +30,22 @@ namespace ecmascript {
     {
         typedef T value_type;
 
-        explicit es_heap_range(value_type *first, value_type *last)
+        explicit es_heap_range(value_type *first, value_type *last) throw()
         : min_(first)
         , max_(last)
         {
         }
 
-        value_type const* begin() const { return min_; }
+        value_type const* begin() const throw() { return min_; }
 
-        value_type const* end() const { return max_; }
+        value_type const* end() const throw() { return max_; }
 
         void resize()
         {
             size_t const size = (max_ - min_) * 2;
             max_ = min_ + size;
             min_ = reinterpret_cast<value_type *>(
-                es_realloc(min_, sizeof(value_type *) * size));
+                std::realloc(min_, sizeof(value_type *) * size));
         }
 
     private:
@@ -62,25 +62,25 @@ namespace ecmascript {
     {
         typedef T value_type;
 
-        es_parse_stack()
+        es_parse_stack() throw()
         : sp_(reinterpret_cast<value_type *>(
-            es_malloc(initial_size * sizeof(value_type *))))
+            std::malloc(initial_size * sizeof(value_type *))))
         , range_(sp_, sp_ + initial_size)
         {
         }
         
-        ~es_parse_stack() { es_free(sp_); }
+        ~es_parse_stack() throw() { std::free(sp_); }
 
-        void push(value_type value)
+        void push(value_type value) throw()
         {
             if (sp_ == range_.end() - 1)
                 range_.resize();
             *++sp_ = value;
         }
 
-        value_type const top() const { return *sp_; }
+        value_type const top() const throw() { return *sp_; }
 
-        value_type const pop() { return *(sp_--); }
+        value_type const pop() throw() { return *(sp_--); }
 
     private:
         value_type * sp_;
@@ -96,33 +96,45 @@ namespace ecmascript {
     {
         typedef es_parsed_element self_t;
 
-        es_parsed_element(es_parsed_element const& rhs)
-        : p_closure_(rhs.p_closure_) 
+        es_parsed_element(es_parsed_element const& rhs) throw()
+        : p_closure_(rhs.p_closure_)
         {
         }
 
-        es_parsed_element(IClosure * const p_closure): p_closure_(p_closure) {}
+        es_parsed_element(IClosure * const p_closure) throw()
+        : p_closure_(p_closure)
+        {
+        }
 
-        es_parsed_element(iteratorT const& it): it_(it) {}
+        es_parsed_element(iteratorT const& it) throw()
+        : it_(it)
+        {
+        }
 
-        es_parsed_element const& operator =(self_t const& rhs)
+        es_parsed_element const& operator =(self_t const& rhs) throw()
         {
             return p_closure_ = rhs.p_closure_, *this;
         }
 
-        IClosure * const& operator =(IClosure * const p_closure)
+        IClosure * const& operator =(IClosure * const p_closure) throw()
         {
             return p_closure_ = p_closure;
         }
 
-        iteratorT const& operator =(iteratorT const it) { return it_ = it; }
+        iteratorT const& operator =(iteratorT const it) throw()
+        {
+            return it_ = it;
+        }
 
-        operator IClosure &() const { return *p_closure_; }
+        operator IClosure &() const throw()
+        {
+            return *p_closure_;
+        }
 
-        operator iteratorT const() const { return it_; }
+        operator iteratorT const() const throw() { return it_; }
 
     private:
-        const union {
+        union {
             IClosure * p_closure_;
             iteratorT it_;
         };
@@ -135,37 +147,42 @@ namespace ecmascript {
     //
     // @struct es_semantic_action_base
     //
-    template <typename iteratorT>
     struct es_semantic_action_base
     {
-        typedef es_parsed_element<iteratorT> value_type;
+        typedef es_parsed_element<wchar_t const*> value_type;
         typedef es_parse_stack<value_type> stack_type;
 
-        void push(value_type value) const { parse_stack_.push(value); }
+        void push(value_type value) const throw()
+        {
+            parse_stack_.push(value);
+        }
 
-        value_type const top() const { return parse_stack_.top(); }
+        value_type const top() const throw()
+        {
+            return parse_stack_.top();
+        }
 
-        value_type const pop() const { return parse_stack_.pop(); }
+        value_type const pop() const throw()
+        {
+            return parse_stack_.pop();
+        }
 
     private:
         static stack_type parse_stack_;
     };
-    
-    template <typename iteratorT>
-    typename es_semantic_action_base<iteratorT>::stack_type 
-    es_semantic_action_base<iteratorT>::parse_stack_ 
-        = typename es_semantic_action_base<iteratorT>::stack_type();
-    
+
+    es_semantic_action_base::stack_type es_semantic_action_base::parse_stack_;
 
     //////////////////////////////////////////////////////////////////////////
     //
     // @struct es_action_unary
     //
-    template <typename iteratorT>
     struct es_action_unary
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_unary_operator(arg1));
@@ -176,11 +193,12 @@ namespace ecmascript {
     //
     // @struct es_action_binary
     //
-    template <typename iteratorT>
     struct es_action_binary
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -192,11 +210,12 @@ namespace ecmascript {
     //
     // @struct es_action_nop
     //
-    template <typename iteratorT>
     struct es_action_nop
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<Nop>());
         }
@@ -206,11 +225,12 @@ namespace ecmascript {
     //
     // @struct es_action_function
     //
-    template <typename iteratorT>
     struct es_action_function
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Func>(arg1));
@@ -221,29 +241,32 @@ namespace ecmascript {
     //
     // @struct es_action_functionbody
     //
-    template <typename iteratorT>
     struct es_action_functionbody
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<FunctionRoot>(arg1, arg2));
         }
+
     };
 
     //////////////////////////////////////////////////////////////////////////
     //
     // @struct es_action_parameterlist
     //
-    template <typename iteratorT>
     struct es_action_parameterlist
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
-            this->push(static_cast<iteratorT>(0));
+            this->push(static_cast<wchar_t *>(0));
         }
     };
 
@@ -251,11 +274,12 @@ namespace ecmascript {
     //
     // @struct es_action_parameter
     //
-    template <typename iteratorT>
     struct es_action_parameter
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const first, iteratorT const last) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Parameter>(first, last));
         }
@@ -266,11 +290,12 @@ namespace ecmascript {
     //
     // @struct es_action_identifier
     //
-    template <typename iteratorT>
     struct es_action_identifier
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const first, iteratorT const last) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Identifier>(first, last));
         }
@@ -280,11 +305,12 @@ namespace ecmascript {
     //
     // @struct es_action_var
     //
-    template <typename iteratorT>
     struct es_action_var
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             iteratorT const arg1 = this->pop();
             iteratorT const arg2 = this->pop();
@@ -296,11 +322,12 @@ namespace ecmascript {
     //
     // @struct es_action_varinit
     //
-    template <typename iteratorT>
     struct es_action_varinit
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             iteratorT const arg2 = this->pop();
@@ -313,14 +340,15 @@ namespace ecmascript {
     //
     // @struct es_action_forinvar
     //
-    template <typename iteratorT>
     struct es_action_forinvar
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
-            iteratorT const arg1 = this->pop();
-            iteratorT const arg2 = this->pop();
+            wchar_t const* const arg1 = this->pop();
+            wchar_t const* const arg2 = this->pop();
             this->push(new es_lazy_closure<ForInVar>(arg1, arg2));
         }
     };
@@ -329,15 +357,16 @@ namespace ecmascript {
     //
     // @struct es_action_forinvarinit
     //
-    template <typename iteratorT>
     struct es_action_forinvarinit
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
-            iteratorT const arg2 = this->pop();
-            iteratorT const arg3 = this->pop();
+            wchar_t const* const arg2 = this->pop();
+            wchar_t const* const arg3 = this->pop();
             this->push(new es_lazy_closure<ForInVarInit>(arg1, arg2, arg3));
         }
     };
@@ -346,12 +375,12 @@ namespace ecmascript {
     //
     // @struct es_action_member
     //
-    template <typename iteratorT>
     struct es_action_member
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Member>(first, last));
         }
@@ -361,11 +390,12 @@ namespace ecmascript {
     //
     // @struct es_action_bracket
     //
-    template <typename iteratorT>
     struct es_action_bracket
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Bracket>(arg1));
@@ -376,12 +406,12 @@ namespace ecmascript {
     //
     // @struct es_action_undefined
     //
-    template <typename iteratorT>
     struct es_action_undefined
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<Undefined>());
         }
@@ -391,9 +421,8 @@ namespace ecmascript {
     //
     // @struct es_action_number
     //
-    template <typename iteratorT>
     struct es_action_number
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
         template <typename valueT>
         void
@@ -410,9 +439,8 @@ namespace ecmascript {
     //
     // @struct es_action_singlequotedstring
     //
-    template <typename iteratorT>
     struct es_action_singlequotedstring
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
         void
         operator () (const_string_t const& str) const
@@ -426,9 +454,8 @@ namespace ecmascript {
     //
     // @struct es_action_doublequotedstring
     //
-    template <typename iteratorT>
     struct es_action_doublequotedstring
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
         void
         operator () (const_string_t const& str) const
@@ -442,12 +469,12 @@ namespace ecmascript {
     //
     // @struct es_action_string
     //
-    template <typename iteratorT>
     struct es_action_string
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<String>(first, last));
         }
@@ -457,11 +484,12 @@ namespace ecmascript {
     //
     // @struct es_action_args
     //
-    template <typename iteratorT>
     struct es_action_args
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Args>(arg1));
@@ -472,11 +500,12 @@ namespace ecmascript {
     //
     // @struct es_action_arg
     //
-    template <typename iteratorT>
     struct es_action_arg
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -488,11 +517,12 @@ namespace ecmascript {
     //
     // @struct es_action_argend
     //
-    template <typename iteratorT>
     struct es_action_argend
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<ArgEnd>());
         }
@@ -502,11 +532,12 @@ namespace ecmascript {
     //
     // @struct es_action_newargend
     //
-    template <typename iteratorT>
     struct es_action_newargend
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<NewArgEnd>());
         }
@@ -516,12 +547,12 @@ namespace ecmascript {
     //
     // @struct es_action_nativestring
     //
-    template <typename iteratorT>
     struct es_action_nativestring
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(last);
             this->push(first);
@@ -532,12 +563,12 @@ namespace ecmascript {
     //
     // @struct es_action_regexp
     //
-    template <typename iteratorT>
     struct es_action_regexp
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             iteratorT const arg1 = this->pop();
             iteratorT const arg2 = this->pop();
@@ -549,11 +580,12 @@ namespace ecmascript {
     //
     // @struct es_action_nullstring
     //
-    template <typename iteratorT>
     struct es_action_nullstring
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<NullString>());
         }
@@ -563,11 +595,12 @@ namespace ecmascript {
     //
     // @struct es_action_true
     //
-    template <typename iteratorT>
     struct es_action_true
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<True>());
         }
@@ -577,11 +610,12 @@ namespace ecmascript {
     //
     // @struct es_action_false
     //
-    template <typename iteratorT>
     struct es_action_false
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<False>());
         }
@@ -591,12 +625,12 @@ namespace ecmascript {
     //
     // @struct es_action_null
     //
-    template <typename iteratorT>
     struct es_action_null
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator ()(iteratorT first, iteratorT const last) const
+        operator ()(iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Null>());
         }
@@ -606,12 +640,12 @@ namespace ecmascript {
     //
     // @struct es_action_this
     //
-    template <typename iteratorT>
     struct es_action_this
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator ()(iteratorT first, iteratorT const last) const
+        operator ()(iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<This>());
         }
@@ -621,11 +655,12 @@ namespace ecmascript {
     //
     // @struct es_action_call
     //
-    template <typename iteratorT>
     struct es_action_call
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Call>(arg1));
@@ -636,11 +671,12 @@ namespace ecmascript {
     //
     // @struct es_action_array
     //
-    template <typename iteratorT>
     struct es_action_array
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Array>(arg1));
@@ -651,11 +687,12 @@ namespace ecmascript {
     //
     // @struct es_action_arrayelement
     //
-    template <typename iteratorT>
     struct es_action_arrayelement
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             IClosure& arg2 = this->pop();
@@ -667,11 +704,12 @@ namespace ecmascript {
     //
     // @struct es_action_object
     //
-    template <typename iteratorT>
     struct es_action_object
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Object>(arg1));
@@ -682,11 +720,12 @@ namespace ecmascript {
     //
     // @struct es_action_objectelement
     //
-    template <typename iteratorT>
     struct es_action_objectelement
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             IClosure& arg2 = this->pop();
@@ -699,11 +738,12 @@ namespace ecmascript {
     //
     // @struct es_action_new
     //
-    template <typename iteratorT>
     struct es_action_new
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<New>(arg1));
@@ -714,11 +754,12 @@ namespace ecmascript {
     //
     // @struct es_action_postinc
     //
-    template <typename iteratorT>
     struct es_action_postinc
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<PostInc>(arg1));
@@ -729,11 +770,12 @@ namespace ecmascript {
     //
     // @struct es_action_postdec
     //
-    template <typename iteratorT>
     struct es_action_postdec
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<PostDec>(arg1));
@@ -744,11 +786,12 @@ namespace ecmascript {
     //
     // @struct es_action_inc
     //
-    template <typename iteratorT>
     struct es_action_inc
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Inc>(arg1));
@@ -759,11 +802,12 @@ namespace ecmascript {
     //
     // @struct es_action_dec
     //
-    template <typename iteratorT>
     struct es_action_dec
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Dec>(arg1));
@@ -774,11 +818,12 @@ namespace ecmascript {
     //
     // @struct es_action_unaryplus
     //
-    template <typename iteratorT>
     struct es_action_unaryplus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<UnaryPlus>(arg1));
@@ -789,11 +834,12 @@ namespace ecmascript {
     //
     // @struct es_action_unaryminus
     //
-    template <typename iteratorT>
     struct es_action_unaryminus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<UnaryMinus>(arg1));
@@ -804,11 +850,12 @@ namespace ecmascript {
     //
     // @struct es_action_tilde
     //
-    template <typename iteratorT>
     struct es_action_tilde
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Tilde>(arg1));
@@ -819,11 +866,12 @@ namespace ecmascript {
     //
     // @struct es_action_not
     //
-    template <typename iteratorT>
     struct es_action_not
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Not>(arg1));
@@ -834,11 +882,12 @@ namespace ecmascript {
     //
     // @struct es_action_void
     //
-    template <typename iteratorT>
     struct es_action_void
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Void>(arg1));
@@ -849,11 +898,12 @@ namespace ecmascript {
     //
     // @struct es_action_delete
     //
-    template <typename iteratorT>
     struct es_action_delete
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Delete>(arg1));
@@ -864,11 +914,12 @@ namespace ecmascript {
     //
     // @struct es_action_typeof
     //
-    template <typename iteratorT>
     struct es_action_typeof
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<TypeOf>(arg1));
@@ -879,11 +930,12 @@ namespace ecmascript {
     //
     // @struct es_action_mul
     //
-    template <typename iteratorT>
     struct es_action_mul
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -895,11 +947,12 @@ namespace ecmascript {
     //
     // @struct es_action_div
     //
-    template <typename iteratorT>
     struct es_action_div
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -911,11 +964,12 @@ namespace ecmascript {
     //
     // @struct es_action_mod
     //
-    template <typename iteratorT>
     struct es_action_mod
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -927,11 +981,12 @@ namespace ecmascript {
     //
     // @struct es_action_plus
     //
-    template <typename iteratorT>
     struct es_action_plus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -943,11 +998,12 @@ namespace ecmascript {
     //
     // @struct es_action_minus
     //
-    template <typename iteratorT>
     struct es_action_minus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -959,11 +1015,12 @@ namespace ecmascript {
     //
     // @struct es_action_shl
     //
-    template <typename iteratorT>
     struct es_action_shl
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -975,11 +1032,12 @@ namespace ecmascript {
     //
     // @struct es_action_sar
     //
-    template <typename iteratorT>
     struct es_action_sar
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -991,11 +1049,12 @@ namespace ecmascript {
     //
     // @struct es_action_shr
     //
-    template <typename iteratorT>
     struct es_action_shr
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1007,11 +1066,12 @@ namespace ecmascript {
     //
     // @struct es_action_le
     //
-    template <typename iteratorT>
     struct es_action_le
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1023,11 +1083,12 @@ namespace ecmascript {
     //
     // @struct es_action_ge
     //
-    template <typename iteratorT>
     struct es_action_ge
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1039,11 +1100,12 @@ namespace ecmascript {
     //
     // @struct es_action_lt
     //
-    template <typename iteratorT>
     struct es_action_lt
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1055,11 +1117,12 @@ namespace ecmascript {
     //
     // @struct es_action_gt
     //
-    template <typename iteratorT>
     struct es_action_gt
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1071,11 +1134,12 @@ namespace ecmascript {
     //
     // @struct es_action_instanceof
     //
-    template <typename iteratorT>
     struct es_action_instanceof
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1087,11 +1151,12 @@ namespace ecmascript {
     //
     // @struct es_action_in
     //
-    template <typename iteratorT>
     struct es_action_in
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1103,11 +1168,12 @@ namespace ecmascript {
     //
     // @struct es_action_stricteq
     //
-    template <typename iteratorT>
     struct es_action_stricteq
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
-        void operator () (iteratorT const /*first*/, iteratorT const /*last*/) const
+        template <typename iteratorT>
+        void
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1119,12 +1185,12 @@ namespace ecmascript {
     //
     // @struct es_action_strictne
     //
-    template <typename iteratorT>
     struct es_action_strictne
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1136,12 +1202,12 @@ namespace ecmascript {
     //
     // @struct es_action_eq
     //
-    template <typename iteratorT>
     struct es_action_eq
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1153,12 +1219,12 @@ namespace ecmascript {
     //
     // @struct es_action_ne
     //
-    template <typename iteratorT>
     struct es_action_ne
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1170,12 +1236,12 @@ namespace ecmascript {
     //
     // @struct es_action_bitand
     //
-    template <typename iteratorT>
     struct es_action_bitand
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1187,12 +1253,12 @@ namespace ecmascript {
     //
     // @struct es_action_bitxor
     //
-    template <typename iteratorT>
     struct es_action_bitxor
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1204,12 +1270,12 @@ namespace ecmascript {
     //
     // @struct es_action_bitor
     //
-    template <typename iteratorT>
     struct es_action_bitor
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1221,12 +1287,12 @@ namespace ecmascript {
     //
     // @struct es_action_and
     //
-    template <typename iteratorT>
     struct es_action_and
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<And>(arg1));
@@ -1237,12 +1303,12 @@ namespace ecmascript {
     //
     // @struct es_action_or
     //
-    template <typename iteratorT>
     struct es_action_or
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Or>(arg1));
@@ -1253,12 +1319,12 @@ namespace ecmascript {
     //
     // @struct es_action_alternative
     //
-    template <typename iteratorT>
     struct es_action_alternative
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1270,12 +1336,12 @@ namespace ecmascript {
     //
     // @struct es_action_if
     //
-    template <typename iteratorT>
     struct es_action_if
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<If>(arg1));
@@ -1286,12 +1352,12 @@ namespace ecmascript {
     //
     // @struct es_action_ifelse
     //
-    template <typename iteratorT>
     struct es_action_ifelse
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1303,12 +1369,12 @@ namespace ecmascript {
     //
     // @struct es_action_assign
     //
-    template <typename iteratorT>
     struct es_action_assign
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1320,12 +1386,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignmul
     //
-    template <typename iteratorT>
     struct es_action_assignmul
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1337,12 +1403,12 @@ namespace ecmascript {
     //
     // @struct es_action_assigndiv
     //
-    template <typename iteratorT>
     struct es_action_assigndiv
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1354,12 +1420,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignmod
     //
-    template <typename iteratorT>
     struct es_action_assignmod
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1371,12 +1437,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignplus
     //
-    template <typename iteratorT>
     struct es_action_assignplus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1388,12 +1454,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignminus
     //
-    template <typename iteratorT>
     struct es_action_assignminus
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1405,12 +1471,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignshl
     //
-    template <typename iteratorT>
     struct es_action_assignshl
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1422,12 +1488,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignshr
     //
-    template <typename iteratorT>
     struct es_action_assignshr
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1439,12 +1505,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignsar
     //
-    template <typename iteratorT>
     struct es_action_assignsar
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1456,12 +1522,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignand
     //
-    template <typename iteratorT>
     struct es_action_assignand
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1473,12 +1539,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignxor
     //
-    template <typename iteratorT>
     struct es_action_assignxor
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1490,12 +1556,12 @@ namespace ecmascript {
     //
     // @struct es_action_assignor
     //
-    template <typename iteratorT>
     struct es_action_assignor
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1507,12 +1573,12 @@ namespace ecmascript {
     //
     // @struct es_action_dowhile
     //
-    template <typename iteratorT>
     struct es_action_dowhile
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1524,12 +1590,12 @@ namespace ecmascript {
     //
     // @struct es_action_while
     //
-    template <typename iteratorT>
     struct es_action_while
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1541,12 +1607,12 @@ namespace ecmascript {
     //
     // @struct es_action_for
     //
-    template <typename iteratorT>
     struct es_action_for
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg3 = this->pop();
             IClosure& arg2 = this->pop();
@@ -1559,12 +1625,12 @@ namespace ecmascript {
     //
     // @struct es_action_forin
     //
-    template <typename iteratorT>
     struct es_action_forin
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg3 = this->pop();
             IClosure& arg2 = this->pop();
@@ -1577,12 +1643,12 @@ namespace ecmascript {
     //
     // @struct es_action_switch
     //
-    template <typename iteratorT>
     struct es_action_switch
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1594,12 +1660,12 @@ namespace ecmascript {
     //
     // @struct es_action_case
     //
-    template <typename iteratorT>
     struct es_action_case
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1611,12 +1677,12 @@ namespace ecmascript {
     //
     // @struct es_action_default
     //
-    template <typename iteratorT>
     struct es_action_default
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1628,12 +1694,12 @@ namespace ecmascript {
     //
     // @struct es_action_continue
     //
-    template <typename iteratorT>
     struct es_action_continue
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Continue>(first, last));
         }
@@ -1643,12 +1709,12 @@ namespace ecmascript {
     //
     // @struct es_action_continuenoarg
     //
-    template <typename iteratorT>
     struct es_action_continuenoarg
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<ContinueNoArg>());
         }
@@ -1658,12 +1724,12 @@ namespace ecmascript {
     //
     // @struct es_action_break
     //
-    template <typename iteratorT>
     struct es_action_break
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const first, iteratorT const last) const
+        operator () (iteratorT first, iteratorT last) const
         {
             this->push(new es_lazy_closure<Break>(first, last));
         }
@@ -1673,12 +1739,12 @@ namespace ecmascript {
     //
     // @struct es_action_breaknoarg
     //
-    template <typename iteratorT>
     struct es_action_breaknoarg
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<BreakNoArg>());
         }
@@ -1688,12 +1754,12 @@ namespace ecmascript {
     //
     // @struct es_action_return
     //
-    template <typename iteratorT>
     struct es_action_return
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Return>(arg1));
@@ -1704,12 +1770,12 @@ namespace ecmascript {
     //
     // @struct es_action_returnnoarg
     //
-    template <typename iteratorT>
     struct es_action_returnnoarg
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             this->push(new es_lazy_closure<ReturnNoArg>());
         }
@@ -1719,12 +1785,12 @@ namespace ecmascript {
     //
     // @struct es_action_throw
     //
-    template <typename iteratorT>
     struct es_action_throw
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             this->push(new es_lazy_closure<Throw>(arg1));
@@ -1735,12 +1801,12 @@ namespace ecmascript {
     //
     // @struct es_action_with
     //
-    template <typename iteratorT>
     struct es_action_with
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1752,12 +1818,12 @@ namespace ecmascript {
     //
     // @struct es_action_trycatch
     //
-    template <typename iteratorT>
     struct es_action_trycatch
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg3 = this->pop();
             IClosure& arg2 = this->pop();
@@ -1770,12 +1836,12 @@ namespace ecmascript {
     //
     // @struct es_action_tryfinally
     //
-    template <typename iteratorT>
     struct es_action_tryfinally
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg2 = this->pop();
             IClosure& arg1 = this->pop();
@@ -1787,12 +1853,12 @@ namespace ecmascript {
     //
     // @struct es_action_label
     //
-    template <typename iteratorT>
     struct es_action_label
-    : es_semantic_action_base<iteratorT>
+    : es_semantic_action_base
     {
+        template <typename iteratorT>
         void
-        operator () (iteratorT const /*first*/, iteratorT const /*last*/) const throw()
+        operator () (iteratorT /*first*/, iteratorT /*last*/) const throw()
         {
             IClosure& arg1 = this->pop();
             iteratorT const arg2 = this->pop();

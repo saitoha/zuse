@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-
 #ifndef __cplusplus
 #error A c++ compiler is required.
 #endif
@@ -25,7 +24,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// main header
+//  zuse main header
 //
 
 // configuration -->
@@ -34,8 +33,7 @@
 //#define ES_TRACE_NODE 1
 #define ES_TRACE_PARSING_TIME 1
 #define ES_TRACE_RUNNING_TIME 1
-#define _UNICODE
-#define UNICODE
+
 // debug
 //#define ES_DEBUG
 

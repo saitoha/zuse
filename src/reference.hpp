@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 namespace ecmascript {
@@ -297,7 +296,7 @@ namespace ecmascript {
     // void operator
         IUndefined& __stdcall void__() const
         {
-            return *new es_native_error<string_t>(L"void__");
+            throw std::logic_error("void__");
         }
 
     // typeof operator
@@ -630,6 +629,12 @@ namespace ecmascript {
         {
             ES_ASSERT(0 != p_value_);
             return p_value_->operator const_string_t const();
+        }
+
+        operator string_t const() const
+        {
+            ES_ASSERT(0 != p_value_);
+            return p_value_->operator string_t const();
         }
 
         operator ecmascript::integer_t() const
@@ -926,7 +931,7 @@ namespace ecmascript {
     // void operator
         IUndefined& __stdcall void__() const
         {
-            return *new es_native_error<string_t>(L"void__");
+            throw std::logic_error("void__");
         }
 
     // typeof operator
@@ -1259,6 +1264,12 @@ namespace ecmascript {
         {
             ES_ASSERT(0 != p_value_);
             return p_value_->operator const_string_t const();
+        }
+
+        operator string_t const() const
+        {
+            ES_ASSERT(0 != p_value_);
+            return p_value_->operator string_t const();
         }
 
         operator ecmascript::integer_t() const

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
 
-
 #include "types.hpp"
 #include "x86.hpp"
+
+
+void * junction_break;
 
 #ifdef _DEBUG
 namespace {
     struct es_stack_checker {
         explicit es_stack_checker(
-            ecmascript::es_machine<ecmascript::IPrimitive> const& vm)
+            ecmascript::es_machine<ecmascript::IPrimitive> const& vm) throw()
         : vm_(vm)
         , esp_(vm.get_esp())
         {
         }
 
-        ~es_stack_checker() 
+        ~es_stack_checker() throw()
         {
             if (esp_ != vm_.get_esp())
                 ES_ASSERT(esp_ == vm_.get_esp());
@@ -54,12 +56,18 @@ namespace ecmascript {
     struct es_callstack
     {
         static const size_t ES_CALLSTACK_SIZE = 1000;
-        ptrdiff_t buffer_[ES_CALLSTACK_SIZE];
-        typedef ptrdiff_t * iterator_t;
+        std::ptrdiff_t buffer_[ES_CALLSTACK_SIZE];
+        typedef std::ptrdiff_t * iterator_t;
 
-        es_callstack(): it_(buffer_) {}
+        es_callstack() throw()
+        : it_(buffer_)
+        {
+        }
 
-        iterator_t get_iterator () const { return it_; }
+        iterator_t get_iterator () const throw()
+        {
+            return it_;
+        }
          
     private:
         iterator_t it_;
@@ -80,7 +88,7 @@ namespace ecmascript {
         typedef es_machine<primitiveT> machine_t;
         
         template <typename actorT>
-        es_codestream(machine_t& vm, actorT const& actor)
+        es_codestream(machine_t& vm, actorT const& actor) throw()
         : buffer_(mmap_alloc<value_type>(50319))
         , it_(buffer_)
         , p_vm_(&vm)
@@ -112,44 +120,44 @@ namespace ecmascript {
         }
 
         template <typename generatorT>
-        self_t& operator << (generatorT const& generator)
+        self_t& operator << (generatorT const& generator) throw()
         {
             generator.assemble(*this);
             return *this;
         }
 
-        void write(void const* src, size_type length)
+        void write(void const* src, size_type length) throw()
         {
             memcpy(it_, src, length);
             it_ += length;
         }
 
-        value_type const *begin() const
+        value_type const *begin() const throw()
         {
             return buffer_;
         }
 
-        value_type *begin()
+        value_type *begin() throw()
         {
             return buffer_;
         }
 
-        value_type const *end() const
+        value_type const *end() const throw()
         {
             return it_;
         }
 
-        value_type *end()
+        value_type *end() throw()
         {
             return it_;
         }
 
-        size_type empty() const
+        size_type empty() const throw()
         {
             return it_ == buffer_;
         }
 
-        void relative_patch(unsigned int address) const
+        void relative_patch(unsigned int address) const throw()
         {
             do 
             {
@@ -161,7 +169,7 @@ namespace ecmascript {
             while (0 != address);
         }
         
-        void absolute_patch(unsigned int address) const
+        void absolute_patch(unsigned int address) const throw()
         {
             do 
             {
@@ -174,7 +182,9 @@ namespace ecmascript {
         }
         
         template <typename machineT>
-        primitiveT& __stdcall operator ()(machineT& vm) const
+        primitiveT& __stdcall operator ()(
+            machineT& vm
+            ) const throw()
         {
             union {
                 primitiveT& (__cdecl *pfn)(machineT&);
@@ -187,9 +197,10 @@ namespace ecmascript {
         template <typename actorT>
         actorT const& as_actor() const 
         {
-            struct actor: actorT
+            struct actor 
+            : actorT
             {
-                explicit actor(self_t const& code)
+                explicit actor(self_t const& code) throw()
                 : code_(code)
                 {
                 }
@@ -207,11 +218,14 @@ namespace ecmascript {
             return *new actor(*this);
         }
                 
-        typedef primitiveT& (__cdecl *function_type)
-            (void const*, es_machine<primitiveT>&);
+        typedef primitiveT& (__cdecl *function_type)(
+            void const*, 
+            es_machine<primitiveT>&
+            );
         
         template <typename actorT>
-        function_type __stdcall make_function() const
+        function_type __stdcall 
+        make_function() const throw()
         {
             union {
                 function_type pfn;
@@ -247,20 +261,20 @@ namespace ecmascript {
     compile_and_run(closureT const& actor, machineT& vm)
     {
 #if ES_TRACE_COMPILE_TIME
-        clock_t t = clock();
+        std::clock_t t = std::clock();
 #endif // ES_TRACE_COMPILE_TIME
         es_codestream<IPrimitive> code(vm, (IClosure const&)actor);
 #if ES_TRACE_COMPILE_TIME
-        wprintf(L"compile: %.3f\n", double(clock() - t) / CLOCKS_PER_SEC);
+        wprintf(L"compile: %.3f\n", double(std::clock() - t) / CLOCKS_PER_SEC);
 #endif // ES_TRACE_COMPILE_TIME
         
         {
 #if ES_TRACE_RUNNING_TIME
-            clock_t t = clock();
+            std::clock_t t = std::clock();
 #endif // ES_TRACE_RUNNING_TIME
             code(vm);
 #if ES_TRACE_RUNNING_TIME
-            wprintf(L"eval: %.3f\n", double(clock() - t) / CLOCKS_PER_SEC);
+            wprintf(L"eval: %.3f\n", double(std::clock() - t) / CLOCKS_PER_SEC);
 #endif // ES_TRACE_RUNNING_TIME
         }
     };
@@ -279,7 +293,7 @@ namespace ecmascript {
             Fp1 const* const* fp1_;
         };
 
-        explicit es_binded_vfunc(IClosure const& closure)
+        explicit es_binded_vfunc(IClosure const& closure) throw()
         : p_closure_(&closure)
         {
         }
@@ -350,7 +364,7 @@ namespace ecmascript {
         typedef es_leaf_operator self_t;
         
     public:
-        es_leaf_operator()
+        es_leaf_operator() throw()
         {
         }
 
@@ -390,7 +404,7 @@ namespace ecmascript {
         typedef es_leaf_operator base_t;
         
     public:
-        explicit es_unary_operator(IClosure const& arg1)
+        explicit es_unary_operator(IClosure const& arg1) throw()
         : functor_(arg1)
         {
         }
@@ -447,7 +461,10 @@ namespace ecmascript {
         typedef es_unary_operator base_t;
         
     public:
-        explicit es_binary_operator(IClosure const& arg1, IClosure const& arg2)
+        explicit es_binary_operator(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_unary_operator(arg1)
         , functor_(arg2)
         {
@@ -511,7 +528,7 @@ namespace ecmascript {
             IClosure const& arg1,
             IClosure const& arg2,
             IClosure const& arg3
-            )
+            ) throw()
         : es_binary_operator(arg1, arg2)
         , functor_(arg3)
         {
@@ -571,11 +588,11 @@ namespace ecmascript {
     struct es_lazy_closure<Nop>
     : es_leaf_operator
     {
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -614,12 +631,12 @@ namespace ecmascript {
         typedef es_lazy_closure<And> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -680,12 +697,12 @@ namespace ecmascript {
         typedef es_lazy_closure<If> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -742,12 +759,12 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<And> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -806,12 +823,15 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<Alternative> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -871,12 +891,15 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<IfElse> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -927,12 +950,15 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<DoWhile> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1080,12 +1106,15 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<While> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1237,12 +1266,12 @@ namespace ecmascript {
             IClosure const& arg1,
             IClosure const& arg2,
             IClosure const& arg3
-            )
+            ) throw()
         : es_trinary_operator(arg1, arg2, arg3)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1387,12 +1416,12 @@ namespace ecmascript {
             IClosure const& arg1,
             IClosure const& arg2,
             IClosure const& arg3
-            )
+            ) throw()
         : es_trinary_operator(arg1, arg2, arg3)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1606,12 +1635,12 @@ namespace ecmascript {
         explicit es_lazy_closure(
             IClosure const& arg1,
             IClosure const& arg2
-            )
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1769,12 +1798,12 @@ namespace ecmascript {
         explicit es_lazy_closure(
             IClosure const& arg1,
             IClosure const& arg2
-            )
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1856,12 +1885,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Default> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -1931,12 +1963,15 @@ namespace ecmascript {
         typedef es_lazy_closure<With> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2006,12 +2041,15 @@ namespace ecmascript {
     : es_leaf_operator
     {
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2040,7 +2078,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -2082,12 +2120,12 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<Bracket> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2187,12 +2225,15 @@ namespace ecmascript {
         
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2237,7 +2278,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -2275,12 +2316,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Call> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2355,12 +2396,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Args> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2432,12 +2473,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Arg> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2500,11 +2544,11 @@ namespace ecmascript {
         typedef es_lazy_closure<ArgEnd> self_t;
 
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2592,11 +2636,11 @@ namespace ecmascript {
         typedef es_lazy_closure<NewArgEnd> self_t;
     
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2675,13 +2719,16 @@ namespace ecmascript {
         
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2727,13 +2774,16 @@ namespace ecmascript {
         
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2779,13 +2829,16 @@ namespace ecmascript {
         
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2830,11 +2883,11 @@ namespace ecmascript {
         typedef es_lazy_closure<NullString> self_t;
         
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2877,11 +2930,11 @@ namespace ecmascript {
         typedef es_lazy_closure<Null> self_t;
         
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2941,14 +2994,19 @@ namespace ecmascript {
     : es_leaf_operator
     {
         template <typename T1, typename T2>
-        explicit es_lazy_closure(T1 first1, T1 last1, T2 first2, T2 last2)
-        : value_(const_string_t(first1, last1)
-                , const_string_t(first2 + 1, last2))
+        explicit es_lazy_closure(
+            T1 first1,
+            T1 last1,
+            T2 first2,
+            T2 last2
+            ) throw()
+        : value_(es_const_string<wchar_t>(first1, last1)
+                , es_const_string<wchar_t>(first2 + 1, last2))
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -2958,9 +3016,9 @@ namespace ecmascript {
             iteratorT last1,
             iteratorT first2,
             iteratorT last2
-            )
-        : value_(const_string_t(first1, last1)
-                , const_string_t(first2 + 1, last2))
+            ) throw()
+        : value_(es_const_string<wchar_t>(first1, last1)
+                , es_const_string<wchar_t>(first2 + 1, last2))
         {
             value_.addref__();
         }
@@ -3020,11 +3078,11 @@ namespace ecmascript {
     struct es_lazy_closure<Undefined>
     : es_leaf_operator
     {
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3080,19 +3138,19 @@ namespace ecmascript {
     struct es_lazy_closure<Number>
     : es_leaf_operator
     {
-        explicit es_lazy_closure(ecmascript::uint32_t d)
+        explicit es_lazy_closure(ecmascript::uint32_t d) throw()
         : value_(d)
         {
             value_.addref__();
         }
 
-        explicit es_lazy_closure(double d)
+        explicit es_lazy_closure(double d) throw()
         : value_(d)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3153,17 +3211,17 @@ namespace ecmascript {
     struct es_lazy_closure<SmallInteger>
     : es_leaf_operator
     {
-        explicit es_lazy_closure(ecmascript::uint32_t d)
+        explicit es_lazy_closure(ecmascript::uint32_t d) throw()
         : value_((value_ << 2) | 0x3)
         {
         }
 
-        explicit es_lazy_closure(double d)
+        explicit es_lazy_closure(double d) throw()
         : value_(ecmascript::uint32_t(value_ << 2) | 0x3)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3220,11 +3278,11 @@ namespace ecmascript {
     struct es_lazy_closure<True>
     : es_leaf_operator
     {
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3286,11 +3344,11 @@ namespace ecmascript {
     struct es_lazy_closure<False>
     : es_leaf_operator
     {
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3336,12 +3394,15 @@ namespace ecmascript {
 
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3411,12 +3472,12 @@ namespace ecmascript {
         explicit es_lazy_closure(
             IClosure const& closure,
             IClosure const& arguments
-            )
+            ) throw()
         : es_binary_operator(closure, arguments)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3539,12 +3600,14 @@ namespace ecmascript {
     struct es_lazy_closure<Func>
     : es_leaf_operator
     {
-        explicit es_lazy_closure(IClosure const& closure)
+        explicit es_lazy_closure(
+            IClosure const& closure
+        ) throw()
         : closure_(closure)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3596,12 +3659,12 @@ namespace ecmascript {
             IClosure const& arg1,
             IClosure const& arg2,
             IClosure const& arg3
-            )
+            ) throw()
         : es_trinary_operator(arg1, arg2, arg3)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3705,12 +3768,15 @@ namespace ecmascript {
         typedef es_lazy_closure<TryFinally> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3807,13 +3873,13 @@ namespace ecmascript {
             IClosure const& arg1,
             iteratorT const first,
             iteratorT const last
-            )
+            ) throw()
         : es_unary_operator(arg1)
         , value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -3948,12 +4014,12 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<New> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4008,12 +4074,12 @@ namespace ecmascript {
     {
         typedef es_lazy_closure<Throw> self_t;
 
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4059,12 +4125,14 @@ namespace ecmascript {
     : es_leaf_operator
     {
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last) throw()
         : value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4096,7 +4164,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -4116,13 +4184,13 @@ namespace ecmascript {
             IClosure const& arg1,
             iteratorT const first,
             iteratorT const last
-            )
+            ) throw()
         : es_unary_operator(arg1)
         , value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4159,7 +4227,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -4175,12 +4243,15 @@ namespace ecmascript {
 
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4222,7 +4293,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -4242,13 +4313,13 @@ namespace ecmascript {
             IClosure const& arg1,
             iteratorT const first,
             iteratorT const last
-            )
+            ) throw()
         : es_unary_operator(arg1)
         , value_(first, last)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4302,7 +4373,7 @@ namespace ecmascript {
         }
         
     private:
-        const_string_t const value_;
+        es_const_string<wchar_t> const value_;
     };
 
 
@@ -4318,12 +4389,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Array> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4370,11 +4441,11 @@ namespace ecmascript {
     struct es_lazy_closure<NullArray>
     : es_leaf_operator
     {
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4412,12 +4483,15 @@ namespace ecmascript {
         typedef es_lazy_closure<ArrayElement> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4468,12 +4542,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Object> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4528,12 +4602,12 @@ namespace ecmascript {
             IClosure const& arg1,
             IClosure const& arg2,
             IClosure const& arg3
-            )
+            ) throw()
         : es_trinary_operator(arg1, arg2, arg3)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4599,11 +4673,11 @@ namespace ecmascript {
         typedef es_lazy_closure<This> self_t;
 
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4643,12 +4717,12 @@ namespace ecmascript {
         typedef es_lazy_closure<PostInc> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4678,7 +4752,7 @@ namespace ecmascript {
         {
             IPrimitive * value = actor1().hint__();
             if (value)
-                return *new es_syntax_error<IPrimitive::string_t>(
+                throw *new es_syntax_error<IPrimitive::string_t>(
                     L"es_lazy_closure<PostInc>::hint__");
             return TH_Number;
         }
@@ -4696,12 +4770,12 @@ namespace ecmascript {
         typedef es_lazy_closure<PostDec> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4731,7 +4805,7 @@ namespace ecmascript {
         {
             IPrimitive * value = actor1().hint__();
             if (value)
-                return *new es_syntax_error<IPrimitive::string_t>(
+                throw *new es_syntax_error<IPrimitive::string_t>(
                     L"es_lazy_closure<PostDec>::hint__");
             return TH_Number;
         }
@@ -4749,12 +4823,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Delete> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4801,12 +4875,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Void> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4854,12 +4928,12 @@ namespace ecmascript {
         typedef es_lazy_closure<TypeOf> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4909,12 +4983,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Inc> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4944,7 +5018,7 @@ namespace ecmascript {
         {
             IPrimitive * value = actor1().hint__();
             if (value)
-                return *new es_syntax_error<IPrimitive::string_t>(
+                throw *new es_syntax_error<IPrimitive::string_t>(
                     L"es_lazy_closure<Inc>::hint__");
             return TH_Number;
         }
@@ -4962,12 +5036,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Dec> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -4997,7 +5071,7 @@ namespace ecmascript {
         {
             IPrimitive * value = actor1().hint__();
             if (value)
-                return *new es_syntax_error<IPrimitive::string_t>(
+                throw *new es_syntax_error<IPrimitive::string_t>(
                     L"es_lazy_closure<Dec>::hint__");
             return TH_Number;
         }
@@ -5015,12 +5089,12 @@ namespace ecmascript {
         typedef es_lazy_closure<UnaryPlus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5070,12 +5144,12 @@ namespace ecmascript {
         typedef es_lazy_closure<UnaryMinus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5125,12 +5199,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Tilde> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5180,12 +5254,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Not> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5236,12 +5310,12 @@ namespace ecmascript {
 
     public:
         explicit es_lazy_closure(
-            IClosure const& arg1, IClosure const& arg2)
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5311,12 +5385,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Div> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5386,12 +5463,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Mod> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5461,12 +5541,13 @@ namespace ecmascript {
         typedef es_lazy_closure<Plus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5553,12 +5634,13 @@ namespace ecmascript {
         typedef es_lazy_closure<Minus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5628,12 +5710,13 @@ namespace ecmascript {
         typedef es_lazy_closure<Shl> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5703,12 +5786,13 @@ namespace ecmascript {
         typedef es_lazy_closure<Sar> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5778,12 +5862,13 @@ namespace ecmascript {
         typedef es_lazy_closure<Shr> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5853,12 +5938,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Lt> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -5928,12 +6016,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Gt> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6003,12 +6094,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Le> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6078,12 +6172,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Ge> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6153,12 +6250,15 @@ namespace ecmascript {
         typedef es_lazy_closure<InstanceOf> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6228,12 +6328,15 @@ namespace ecmascript {
         typedef es_lazy_closure<In> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6303,12 +6406,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Eq> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6378,12 +6484,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Ne> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6453,12 +6562,15 @@ namespace ecmascript {
         typedef es_lazy_closure<StrictEq> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6528,12 +6640,15 @@ namespace ecmascript {
         typedef es_lazy_closure<StrictNe> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6603,12 +6718,15 @@ namespace ecmascript {
         typedef es_lazy_closure<BitAnd> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6678,12 +6796,15 @@ namespace ecmascript {
         typedef es_lazy_closure<BitXor> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6753,12 +6874,15 @@ namespace ecmascript {
         typedef es_lazy_closure<BitOr> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6828,12 +6952,15 @@ namespace ecmascript {
         typedef es_lazy_closure<Assign> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6895,12 +7022,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignMul> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -6965,12 +7095,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignDiv> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7035,12 +7168,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignMod> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7105,12 +7241,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignPlus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7181,12 +7320,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignMinus> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7251,12 +7393,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignShl> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7321,12 +7466,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignSar> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7391,12 +7539,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignShr> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7461,12 +7612,15 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignAnd> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1,
+            IClosure const& arg2
+            ) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7531,12 +7685,13 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignXor> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7601,12 +7756,13 @@ namespace ecmascript {
         typedef es_lazy_closure<AssignOr> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1, IClosure const& arg2)
+        explicit es_lazy_closure(
+            IClosure const& arg1, IClosure const& arg2) throw()
         : es_binary_operator(arg1, arg2)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7672,13 +7828,16 @@ namespace ecmascript {
 
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first,
+            iteratorT const last
+            ) throw()
         : value_(first, last)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7724,11 +7883,11 @@ namespace ecmascript {
         typedef es_lazy_closure<ContinueNoArg> self_t;
 
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7774,13 +7933,14 @@ namespace ecmascript {
 
     public:
         template <typename iteratorT>
-        explicit es_lazy_closure(iteratorT const first, iteratorT const last)
+        explicit es_lazy_closure(
+            iteratorT const first, iteratorT const last) throw()
         : value_(first, last)
         {
             value_.addref__();
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7873,12 +8033,12 @@ namespace ecmascript {
         typedef es_lazy_closure<Return> self_t;
 
     public:
-        explicit es_lazy_closure(IClosure const& arg1)
+        explicit es_lazy_closure(IClosure const& arg1) throw()
         : es_unary_operator(arg1)
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 
@@ -7927,11 +8087,11 @@ namespace ecmascript {
         typedef es_lazy_closure<ReturnNoArg> self_t;
 
     public:
-        es_lazy_closure()
+        es_lazy_closure() throw()
         {
         }
 
-        virtual ~es_lazy_closure()
+        virtual ~es_lazy_closure() throw()
         {
         }
 

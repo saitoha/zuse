@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,16 +16,16 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-
 namespace ecmascript {
 
     namespace {
 
-        const_string_t const& es_replace_helper(
-            const_string_t& /* in */ given_string,
+        template <typename stringT>
+        stringT& es_replace_helper(
+            stringT& /* in */ given_string,
             IPrimitive& /* in */ match_result,
             IPrimitive const& /* in */ last_index,
-            const_string_t const& /* in */ replace_value
+            stringT const& /* in */ replace_value
             ) throw()
         {
             ES_ASSERT(L"array" == match_result.typeof__().operator const_string_t const());
@@ -54,10 +54,10 @@ namespace ecmascript {
             {
             }
 
-            operator const_string_t const() const
+            operator std::wstring const() const
             {
                 return 0 == p_callee_ ?
-                    value_.operator const_string_t const() :
+                    value_.operator std::wstring const() :
                     value_.call__(
                         value_.get__(L"callee"),
                         *new es_arguments<stringT>(*p_callee_));
@@ -114,13 +114,13 @@ namespace ecmascript {
                 es_string_or_binded_function<stringT> const& replace_value
                 ) throw()
             {
-                const_string_t this_string = lhs_string.operator const_string_t const();
+                stringT this_string = lhs_string.operator std::wstring const();
                 return *new es_string<stringT>(
                     this_string.replace(
                         this_string.find(
-                            search_value.operator const_string_t const(), 0),
-                        search_value.operator const_string_t const().length(),
-                        replace_value.operator const_string_t const()));
+                            search_value.operator std::wstring const(), 0),
+                        search_value.operator std::wstring const().length(),
+                        replace_value.operator std::wstring const()));
             }
         };
 
@@ -151,12 +151,12 @@ namespace ecmascript {
                 es_string_or_binded_function<stringT> const& replace_value
                 ) throw()
             {
-                const_string_t result_string(lhs_string.operator const_string_t const());
+                stringT result_string(lhs_string.operator std::wstring const());
                 {
                     struct es_match_results_stack
                     {
                         explicit es_match_results_stack(
-                            const_string_t& result_string) throw()
+                            stringT& result_string) throw()
                         : p_match_result_(0)
                         , result_string_(result_string)
                         {
@@ -183,7 +183,7 @@ namespace ecmascript {
                             p_match_result_ = new es_match_result(
                                 matcher,
                                 last_index,
-                                replace_value.operator const_string_t const(),
+                                replace_value.operator stringT const(),
                                 p_match_result_);
                         }
                     private:
@@ -194,7 +194,7 @@ namespace ecmascript {
                             explicit es_match_result(
                                 IPrimitive& matcher,
                                 IPrimitive& last_index,
-                                const_string_t const& replace_value,
+                                stringT const& replace_value,
                                 self_t const* rhs)
                             : matcher_(matcher)
                             , last_index_(last_index)
@@ -203,9 +203,9 @@ namespace ecmascript {
                             {
                             }
 
-                            void apply(const_string_t& result_string)
+                            void apply(stringT& result_string)
                             {
-                                es_replace_helper(
+                                es_replace_helper<stringT>(
                                     result_string, matcher_,
                                     last_index_, replace_value_);
                             }
@@ -218,10 +218,10 @@ namespace ecmascript {
                         private:
                             IPrimitive& matcher_;
                             IPrimitive& last_index_;
-                            const_string_t const replace_value_;
+                            stringT const replace_value_;
                             self_t const* prev_;
                         } const* p_match_result_;
-                        const_string_t& result_string_;
+                        stringT& result_string_;
 
                     } stack(result_string);
 
@@ -240,7 +240,7 @@ namespace ecmascript {
                 es_string_or_binded_function<stringT> const& replace_value
                 ) throw()
             {
-                const_string_t result_string(lhs_string.operator const_string_t const());
+                stringT result_string(lhs_string.operator std::wstring const());
                 IPrimitive& match_result = regexp.exec(lhs_string);
                 return VT::Null == match_result.type__() ?
                     lhs_string :
@@ -249,7 +249,7 @@ namespace ecmascript {
                             result_string,
                             match_result,
                             regexp.lastIndex(),
-                            replace_value.operator const_string_t const()));
+                            replace_value.operator stringT const()));
             }
 
         };
@@ -323,17 +323,11 @@ namespace ecmascript {
                     ES_ASSERT(0 <= arguments.length__());
                     if (VT::Undefined == arguments[0].type__())
                         return *new es_string<string_t>();
-                    const_string_t value;
-                    for (ecmascript::uint32_t i = 0; i < arguments.length__(); ++i)
-                        value += const_string_t::value_type(
-                            arguments[i].operator ecmascript::uint16_t());
-                    /*
                     string_t value;
                     for (ecmascript::uint32_t i = 0; i < arguments.length__(); ++i)
                         value += string_t::traits_type::to_char_type(
                             arguments[i].operator ecmascript::uint16_t());
-                            */
-                    return *new es_string<string_t>(const_string_t(value.begin(), value.end()));
+                    return *new es_string<string_t>(value);
                 }
 
                 IPrimitive& __stdcall construct__(IPrimitive& arguments)
@@ -435,7 +429,7 @@ namespace ecmascript {
             if (str.length() <= pos.operator ecmascript::uint32_t())
                 return *new es_string<string_t>();
             return *new es_string<string_t>(
-                const_string_t(1, str.at(
+                string_t(1, str.at(
                     pos.operator ecmascript::integer_t())));
         }
 
@@ -453,7 +447,7 @@ namespace ecmascript {
 
         IString const& __stdcall concat(IPrimitive& arguments) const
         {
-            const_string_t result = operator const_string_t const();
+            string_t result = operator string_t const();
             for (size_t i = 0; i < arguments.length__();)
                 result += arguments[i++].operator const_string_t const();
             return *new es_string<string_t>(result);
@@ -475,23 +469,27 @@ namespace ecmascript {
         {
             ES_ASSERT(1 <= arguments.length__());
 //            ES_ASSERT(-1 == string_t::npos);
-            const_string_t const& str = operator const_string_t const();
-            const_string_t const target 
-                = arguments[0].operator const_string_t const();
+            string_t const& str = operator string_t const();
             return *new es_number<string_t>(ecmascript::int32_t(
                 str.rfind(
-                    target,
+                    arguments[0].operator const_string_t const(),
                     arguments.length__() > 1 ?
                         arguments[1].operator integer_t(): str.length() - 1)));
         }
 
         INumber const& __stdcall localeCompare(IPrimitive& that) const
         {
+#if 1
             const_string_t const& lhs = operator const_string_t const();
             const_string_t const& rhs = that.operator const_string_t const();
             return *new es_number<string_t>(
                 base_services::es_locale_compare(
                     lhs.begin(), lhs.end(), rhs.begin(), rhs.end()));
+#else // comparation using utf-16
+            return *new es_number<string_t>(
+                operator std::wstring const().compare(
+                    that.operator string_t const()));
+#endif // _MSC_VER
         }
 
         IPrimitive const& __stdcall match(IPrimitive& regexp) const
@@ -556,7 +554,7 @@ namespace ecmascript {
             IPrimitive& /* [in] */ end
             ) const
         {
-            const_string_t const lhs_value = operator const_string_t const();
+            string_t const lhs_value = operator string_t const();
             using ::ecmascript::base_services::es_max;
             using ::ecmascript::base_services::es_min;
             int32_t length = int32_t(lhs_value.length());
@@ -585,15 +583,15 @@ namespace ecmascript {
                     (*this).ToString(), reinterpret_cast<IRegExp&>(separator),
                     limit_value, *new es_array<string_t>())
                 : split_match_with_string(
-                    operator const_string_t const(),
-                    separator.operator const_string_t const(),
+                    operator string_t const(),
+                    separator.operator string_t const(),
                     limit_value, *new es_array<string_t>());
         }
 
         IArray const& split_match(
             IString& /* [in] */ lhs_value,
             IRegExp& /* [in] */ separator_regexp,
-            typename const_string_t::size_type /* [in] */ limit_value,
+            typename string_t::size_type /* [in] */ limit_value,
             IArray& /* [in] */ result_array
             ) const
         {
@@ -601,20 +599,20 @@ namespace ecmascript {
         }
 
         IArray const& split_match_with_string(
-            const_string_t const& /* [in] */ lhs_value,
-            const_string_t const& /* [in] */ separator_string,
-            typename const_string_t::size_type /* [in] */ limit_value,
+            string_t const& /* [in] */ lhs_value,
+            string_t const& /* [in] */ separator_string,
+            typename string_t::size_type /* [in] */ limit_value,
             IArray& /* [in] */ result_array,
-            typename const_string_t::size_type position = 0
+            typename string_t::size_type position = 0
             ) const
         {
             while (true)
             {
-                typename const_string_t::size_type length
+                typename string_t::size_type length
                     = separator_string.length();
-                typename const_string_t::size_type pos = 0 == length ?
+                typename string_t::size_type pos = 0 == length ?
                     position + 1: lhs_value.find(separator_string, position);
-                if (const_string_t::npos == int(pos))
+                if (string_t::npos == pos)
                     return result_array.push__(
                         *new es_string<string_t>(
                             lhs_value.substr(position))), result_array;
@@ -631,7 +629,7 @@ namespace ecmascript {
         {
             if (start.gt__(end).operator bool())
                 return substring(end, start);
-            const_string_t const lhs_value = operator const_string_t const();
+            string_t const lhs_value = operator string_t const();
             using ::ecmascript::base_services::es_max;
             using ::ecmascript::base_services::es_min;
             int32_t length = int32_t(lhs_value.length());
@@ -648,22 +646,22 @@ namespace ecmascript {
 
         IString const& __stdcall toLowerCase() const
         {
-            return *new es_native_error<string_t>(L"not implemented: toLowerCase");
+            throw *new es_native_error<string_t>(L"not implemented: toLowerCase");
         }
 
         IString const& __stdcall toLocaleLowerCase() const
         {
-            return *new es_native_error<string_t>(L"not implemented: toLocaleLowerCase");
+            throw *new es_native_error<string_t>(L"not implemented: toLocaleLowerCase");
         }
 
         IString const& __stdcall toUpperCase() const
         {
-            return *new es_native_error<string_t>(L"not implemented: toUpperCase");
+            throw *new es_native_error<string_t>(L"not implemented: toUpperCase");
         }
 
         IString const& __stdcall toLocaleUpperCase() const
         {
-            return *new es_native_error<string_t>(L"not implemented: toLocaleUpperCase");
+            throw *new es_native_error<string_t>(L"not implemented: toLocaleUpperCase");
         }
 
 // typeof operator
@@ -725,7 +723,7 @@ namespace ecmascript {
                 case VT::Boolean:
                     return eq__(rhs.ToNumber());
                 default:
-                    return *new es_native_error<string_t>(L"not implementd: NString::eq__");
+                    throw std::runtime_error("not implementd: NString::eq__");
             }
             return es_boolean<string_t>::create_instance(false);
         }
@@ -741,11 +739,11 @@ namespace ecmascript {
 // native type conversion
         operator const_string_t const() const
         {
-            /*
-            wprintf(internal_value_.c_str());
-            wprintf(internal_value_.begin());
-            wprintf(L"\n----%d", internal_value_.length());
-            */
+             return internal_value_;
+        }
+
+        operator string_t const() const
+        {
              return internal_value_;
         }
 

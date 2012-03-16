@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -74,7 +73,8 @@ namespace ecmascript {
 
                 IPrimitive& __stdcall construct__(IPrimitive& arguments)
                 {
-                    ES_ABORT("not implemented: es_constructor::construct__");
+                    throw std::logic_error(
+                        "not implemented: es_constructor::construct__");
                 }
 
                 IPrimitive& __stdcall call__(
@@ -129,7 +129,12 @@ namespace ecmascript {
         {
             return L"managed function";
         }
-        
+
+        operator string_t const() const
+        {
+            return L"managed function";
+        }
+
 // IDynamicInoking
         IPrimitive& __stdcall call__(IPrimitive& this_arg, IPrimitive& arguments)
         {
@@ -148,7 +153,7 @@ namespace ecmascript {
 
         IPrimitive& __stdcall construct__(IPrimitive& arguments)
         {
-            es_object<string_t>& object = *new es_object<string_t>();
+            IObject& object = *new es_object<string_t>();
             object.set_prototype__(this->prototype());
             call__(object, arguments);
             return object;
@@ -269,9 +274,13 @@ namespace ecmascript {
     {
         typedef IPrimitive * (* invoke0)(IPrimitive *);
         typedef IPrimitive * (* invoke1)(IPrimitive *, IPrimitive *);
-        typedef IPrimitive * (* invoke2)(IPrimitive *, IPrimitive *, IPrimitive *);
-        typedef IPrimitive * (* invoke3)(IPrimitive *, IPrimitive *, IPrimitive *, IPrimitive*);
-        typedef IPrimitive * (* invoke4)(IPrimitive *, IPrimitive *, IPrimitive *, IPrimitive*, IPrimitive*);
+        typedef IPrimitive * (* invoke2)(
+            IPrimitive *, IPrimitive *, IPrimitive *);
+        typedef IPrimitive * (* invoke3)(
+            IPrimitive *, IPrimitive *, IPrimitive *, IPrimitive*);
+        typedef IPrimitive * (* invoke4)(
+            IPrimitive *, IPrimitive *, IPrimitive *, IPrimitive*, IPrimitive*);
+        
         union {
             void *addr_;
             invoke0 pfn0_;
@@ -280,16 +289,23 @@ namespace ecmascript {
             invoke3 pfn3_;
             invoke4 pfn4_;
         } box;
+
         box.addr_ = addr;
+
         switch (argc)
         {
-        case 0: return box.pfn0_(&this_arg);
-        case 1: return box.pfn1_(&this_arg, argv[0]);
-        case 2: return box.pfn2_(&this_arg, argv[0], argv[1]);
-        case 3: return box.pfn3_(&this_arg, argv[0], argv[1], argv[2]);
-        case 4: return box.pfn4_(&this_arg, argv[0], argv[1], argv[2], argv[3]);
+        case 0:
+            return box.pfn0_(&this_arg);
+        case 1:
+            return box.pfn1_(&this_arg, argv[0]);
+        case 2:
+            return box.pfn2_(&this_arg, argv[0], argv[1]);
+        case 3:
+            return box.pfn3_(&this_arg, argv[0], argv[1], argv[2]);
+        case 4:
+            return box.pfn4_(&this_arg, argv[0], argv[1], argv[2], argv[3]);
         }
-        return &(new es_native_error<IPrimitive::string_t>(L"invalid arguments size"))->operator IPrimitive& ();
+        throw es_native_error<IPrimitive::string_t>(L"invalid arguments size");
     }
 #    endif
 
@@ -343,6 +359,11 @@ namespace ecmascript {
             return L"function() { [native code] }";
         }
 
+        operator string_t const() const
+        {
+            return L"function() { [native code] }";
+        }
+
 // IFunction Override
         IPrimitive& __stdcall call(IPrimitive& arguments)
         {
@@ -355,17 +376,19 @@ namespace ecmascript {
                 = *new es_arguments<string_t>(this_arg);
             for (size_t i = 0; i < arguments.length__(); ++i)
                 new_arguments.push__(arguments[i]);
+            
             return call__(this_arg, new_arguments);
         }
 
         INumber& __stdcall length() const
         {
-            return *new es_number<string_t>(uint32_t(attributes_.argc));
+            return *new es_number<string_t>(
+                uint32_t(attributes_.argc));
         }
 
         IPrimitive& __stdcall prototype()
         {
-            ES_ABORT("not implemented");
+            throw std::logic_error("not implemented");
         }
 
         IPrimitive& __stdcall call__(IPrimitive& this_arg, IPrimitive& arguments)

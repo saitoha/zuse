@@ -316,7 +316,7 @@ libzuse_a_SOURCES = libzuse.cpp \
                      sys.hpp \
                      tags \
                      types.hpp \
-                     u4.def \
+                     zuse.def \
                      undefined.hpp \
                      unicode.hpp \
                      vector.hpp \

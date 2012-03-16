@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 namespace ecmascript {
 
@@ -44,7 +43,7 @@ namespace ecmascript {
             ES_ASSERT(it_end - s > 0);
             scan.first = it_end;
             return scan.create_match(
-                size_t(it_end - s), result, s, scan.first);
+                std::size_t(it_end - s), result, s, scan.first);
         }
 
         template <typename charT>
@@ -54,20 +53,17 @@ namespace ecmascript {
             long long int result = 0;
             charT const * dot = 0;
             bool nagate = false;
-
             charT c = *it;
             if ('-' == c)
-                ++it, nagate = true;
+                nagate = true;
             else if  ('+' == c)
                 ++it;
-            else if ('.' == c)
-                ++it, dot = it;
-
-            if ('0' <= c && c <= '9')
+            else if ('0' <= c && c <= '9')
                 result = c - '0';
+            else if ('.' == c)
+                dot = it;
             else
                 return *last = first, 0;
-            
             while (c = *++it, true)
                 if ('0' <= c && c <= '9')
                     result = result * 10 + (c - '0');
@@ -80,7 +76,6 @@ namespace ecmascript {
                             : result, 0 == dot ? 0: dot - it + 1);
                 else
                     break;
-
             return *last = it, it == first ?
                 0 :
                 (nagate ? - result : result) 

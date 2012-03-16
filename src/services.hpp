@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,28 +16,19 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
 
-#define ES_NOSTL 1
-
 #include <sys/stat.h>
-#include <locale.h>
-//#include <locale>
+#include <locale>
 
 // moduels
 
 #include <stdio.h>
-#include <wchar.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <sstream>
-#include <iomanip>
-#include <set>
-
 #include <setjmp.h>
 
 #ifdef _WIN32
@@ -46,8 +37,7 @@
 #  include <sys/param.h>
 #endif
 
-#include <limits.h>
-#include <float.h>
+#include <limits>
 
 #ifdef _WIN32
 #    include <shlwapi.h>
@@ -65,16 +55,22 @@
 #endif
 #    include <dlfcn.h>
 
+#include <set>
+#include <cfloat>
+#include <iomanip>
 #include <stdexcept>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
+#include <cstdlib>
+#include <float.h>
+#include <cmath>
+#include <cassert>
+#include <sstream>
+//#include <vector>
 #include "vector.hpp"
 
 //#define ES_TEST_JIT 1
 
 #if ES_TRACE_PARSING_TIME || ES_TRACE_RUNNING_TIME || ES_TRACE_COMPILE_TIME
-#include <time.h>
+#include <ctime>
 #endif // ES_TRACE_PARSING_TIME || ES_TRACE_RUNNING_TIME || ES_TRACE_COMPILE_TIME
 
 #if _WIN32
@@ -117,12 +113,6 @@
 #if defined(__x86_64__) || defined(__x86_64)
 #    define __stdcall
 #    define __cdecl
-#elif defined(__arm__)
-#    define __stdcall
-#    define __cdecl
-#elif defined(__ARM_EABI__)
-#    define __stdcall
-#    define __cdecl
 #else
 #    if defined(__GNUC__)
 #        define __stdcall __attribute__((__stdcall__))
@@ -154,8 +144,7 @@
 //  ES_ASSERT
 //
 #ifdef ES_DEBUG
-//#    define ES_ASSERT(expr) try { assert(expr); } catch (...) { assert(0); }
-#    define ES_ASSERT(expr) assert(expr);
+#    define ES_ASSERT(expr) try { assert(expr); } catch (...) { assert(0); }
 #else
 #    ifdef _MSC_VER
 #        define ES_ASSERT(expr) ( __assume(expr) )
@@ -163,12 +152,6 @@
 #        define ES_ASSERT(expr) 
 #    endif // _MSC_VER
 #endif // _DEBUG
-
-//////////////////////////////////////////////////////////////////////////////
-//
-//  ES_ABORT
-//
-#define ES_ABORT(message) abort();
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -218,19 +201,6 @@ namespace ecmascript {
     es_result const es_success = 0;
     es_result const es_fail = -1;
 
-    typedef ptrdiff_t ptrdiff_t;
-    typedef size_t size_t;
-
-    template <typename T>
-    struct iterator_traits;
-
-    template <typename T>
-    struct iterator_traits<T*>
-    {
-        typedef T value_type; 
-        typedef T& reference; 
-    };
-    
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_static_assert
@@ -250,11 +220,6 @@ namespace ecmascript {
         enum { value = I };
     };
 
-    inline void *es_malloc(size_t size) { return malloc(size); }
-
-    inline void es_free(void *p) { return free(p); }
-
-    inline void *es_realloc(void *p, size_t size) { return realloc(p, size); }
 
     //////////////////////////////////////////////////////////////////////////
     //
@@ -331,13 +296,25 @@ namespace ecmascript {
             ES_STATIC_ASSERT(es_chunk::chunk_size == sizeof(es_chunk));
         }
 
-        bool is_available() const throw() { return 0 != mark_; }
+        bool is_available() const throw()
+        {
+            return 0 != mark_;
+        }
 
-        void free() throw() { mark_ = 0; }
+        void free() throw()
+        {
+            mark_ = 0;
+        }
 
-        self_t& get_next() const throw() { return *next_; }
+        self_t& get_next() const throw()
+        {
+            return *next_;
+        }
 
-        void set_next(self_t& chunk) throw() { next_ = &chunk; }
+        void set_next(self_t& chunk) throw()
+        {
+            next_ = &chunk;
+        }
 
     private:
 
@@ -346,9 +323,9 @@ namespace ecmascript {
         union
         {
             int mark_;
-            char block_[chunk_size - sizeof(self_t *)];
+            char block_[chunk_size - sizeof(es_chunk *)];
         };
-        self_t *next_;
+        es_chunk *next_;
     };
 
 
@@ -364,10 +341,16 @@ namespace ecmascript {
             *(it_machine_++) = &machine;
         }
 
-        void __stdcall pop_machine() throw() { --it_machine_; }
+        void __stdcall pop_machine() throw()
+        {
+            --it_machine_;
+        }
 
     protected:
-        es_machine_protector() throw() { it_machine_ = machines_; }
+        es_machine_protector() throw()
+        {
+            it_machine_ = machines_;
+        }
 
         void __stdcall mark__(int cookie) throw()
         {
@@ -394,7 +377,9 @@ namespace ecmascript {
         }
 
     protected:
-        es_object_protector() throw() {}
+        es_object_protector() throw()
+        {
+        }
 
         void __stdcall mark__(int cookie) throw()
         {
@@ -425,21 +410,23 @@ namespace ecmascript {
     template <typename primitiveT, typename chunkT, int BUFFER_SIZE>
     struct es_memory_pool
     {
-        typedef chunkT chunk_type;
     protected:
         es_memory_pool() throw()
         : buffer_(reinterpret_cast<chunkT *>(
-            es_malloc(BUFFER_SIZE * sizeof(chunkT))))
+            malloc(BUFFER_SIZE * sizeof(chunkT))))
         , it_chunk_(buffer_)
         , reserve(BUFFER_SIZE)
         {
         }
 
-        ~es_memory_pool() throw() { es_free(buffer_); }
+        ~es_memory_pool() throw()
+        {
+            free(buffer_);
+        }
 
         void __stdcall sweep__(int cookie) throw()
         {
-            for (chunk_type *it = buffer_; it != it_chunk_; ++it)
+            for (es_chunk *it = buffer_; it != it_chunk_; ++it)
                 if (it->is_available())
                     reinterpret_cast<primitiveT *>(it)->sweep__(cookie);
         }
@@ -449,7 +436,7 @@ namespace ecmascript {
             if (__builtin_expect(BUFFER_SIZE > it_chunk_ - buffer_, true))
                 return it_chunk_++;
             chunkT const * const p = reinterpret_cast<chunkT *>(
-                es_realloc(buffer_, (reserve *= 2) * sizeof(chunkT)));
+                realloc(buffer_, (reserve *= 2) * sizeof(chunkT)));
             (void)p;
             ES_ASSERT(buffer_ == p);
             return it_chunk_++;
@@ -469,7 +456,10 @@ namespace ecmascript {
     struct es_freelist_manager
     {
     protected:
-        es_freelist_manager() throw(): it_free_list_(0) {}
+        es_freelist_manager() throw()
+        : it_free_list_(0)
+        {
+        }
 
         void __stdcall push(es_chunk& free_chunk) throw()
         {
@@ -485,7 +475,10 @@ namespace ecmascript {
             return result;
         }
 
-        bool __stdcall is_empty() throw() { return 0 == it_free_list_; }
+        bool __stdcall is_empty() throw()
+        {
+            return 0 == it_free_list_;
+        }
 
     private:
         chunkT *it_free_list_;
@@ -536,9 +529,13 @@ namespace ecmascript {
         typedef es_freelist_manager<es_chunk> freelist_t;
         typedef es_root_holder<primitiveT> root_holder_t;
 
-        es_gc() throw() {}
+        es_gc() throw()
+        {
+        }
 
-        ~es_gc() throw() {}
+        ~es_gc() throw()
+        {
+        }
 
         void __stdcall collect() throw()
         {
@@ -636,7 +633,10 @@ namespace ecmascript {
             return *value_;
         }
 
-        void set(primitiveT& value) throw() { value_ = &value; }
+        void set(primitiveT& value) throw()
+        {
+            value_ = &value;
+        }
 
         void mark__(int cookie) throw()
         {
@@ -677,10 +677,13 @@ namespace ecmascript {
 
         void __stdcall push(primitiveT & value) throw()
         {
-            *(value_++) = &value;
+            *(value_ ++) = &value;
         }
 
-        void __stdcall push() throw() { ++value_; }
+        void __stdcall push() throw()
+        {
+            ++ value_;
+        }
 
         primitiveT ** __stdcall get_esp() const throw()
         {
@@ -766,11 +769,20 @@ namespace ecmascript {
     private:
         static struct es_context
         {
-            es_context() { it_ = jmp_buf_stack_; }
+            es_context()
+            {
+                it_ = jmp_buf_stack_;
+            }
 
-            void push(jmp_buf * p_buf) const { *(it_++) = p_buf; }
+            void push(jmp_buf * p_jmp_buf) const
+            {
+                *(it_++) = p_jmp_buf;
+            }
 
-            jmp_buf * pop() const { return *--it_; }
+            jmp_buf * pop() const
+            {
+                return *--it_;
+            }
 
         private:
             static ES_THREADLOCAL jmp_buf **it_;
@@ -877,7 +889,10 @@ namespace ecmascript {
     //  debug flag
     //
     static bool verbose_ = false;
-    void es_set_verbose(bool b) { verbose_ = b; }
+    void es_set_verbose(bool b)
+    {
+        verbose_ = b;
+    }
 } // namespace ecmascript
 
 namespace ecmascript { namespace base_services {
@@ -979,7 +994,7 @@ namespace ecmascript { namespace base_services {
 
     bool es_print(wchar_t const * message)
     {
-        wprintf(L"%S\n", message);
+        wprintf(L"%s\n", message);
         return true;
     }
 
@@ -1010,28 +1025,14 @@ namespace ecmascript { namespace base_services {
     }
 #endif // _MSC_VER
 
-    wchar_t const* es_strrstr(
-        const wchar_t *first,
-        const wchar_t *last,
-        const wchar_t *begin,
-        const wchar_t *end
-        ) throw()
-    {
-        for (wchar_t const *it = last; it - first > end - begin; --it) {
-            wchar_t const *it_tmp = it;
-            wchar_t const *it_pattern = end;
-            while (*--it_tmp == *--it_pattern)
-                if (it_pattern == begin)
-                    return it_pattern;
-        }
-        return 0;
-    }
-
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_puts
     //
-    inline int es_puts(char const* s) { return puts(s); }
+    inline int es_puts(char const* s)
+    {
+        return puts(s);
+    }
 
     inline int es_puts(wchar_t const *s)
     {
@@ -1051,119 +1052,66 @@ namespace ecmascript { namespace base_services {
     //
     //  es_putchar
     //
-    inline int es_putchar(char c) { return putchar(c); }
+    inline int es_putchar(char c)
+    {
+        return putchar(c);
+    }
 
-    inline wint_t es_putchar(wchar_t c) { return putwchar(c); }
+    inline wint_t es_putchar(wchar_t c)
+    {
+        return putwchar(c);
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_floor
     //
-    inline double es_floor(double d) { return floor(d); }
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_ceil
-    //
-    inline double es_ceil(double d) { return ceil(d); }
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_sin
-    //
-    inline double es_sin(double d) { return sin(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_cos
-    //
-    inline double es_cos(double d) { return cos(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_tan
-    //
-    inline double es_tan(double d) { return tan(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_asin
-    //
-    inline double es_asin(double d) { return asin(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_acos
-    //
-    inline double es_acos(double d) { return acos(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_atan
-    //
-    inline double es_atan(double d) { return atan(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_atan2
-    //
-    inline double es_atan2(double x, double y) { return atan2(x, y); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_sqrt
-    //
-    inline double es_sqrt(double d) { return sqrt(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_exp
-    //
-    inline double es_exp(double d) { return exp(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_pow
-    //
-    inline double es_pow(double x, double y) { return pow(x, y); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_log
-    //
-    inline double es_log(double d) { return log(d); } 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //  es_rand
-    //
-    inline double es_rand() { return rand(); }
+    inline double es_floor(double d)
+    {
+#if defined(__CYGWIN__) || defined(__MINGW32__)
+        return floor(d);
+#else
+        return std::floor(d);
+#endif // defined(__CYGWIN__) || defined(__MINGW32__)
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_abs
     //
-    inline double es_abs(double d) { return d >= 0 ? d : -d; }
+    inline double es_abs(double d)
+    {
+        return d >= 0 ? d : -d;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_max
     //
     template <typename T>
-    inline T es_max(T d1, T d2) { return d1 > d2 ? d1 : d2; }
+    inline T es_max(T d1, T d2)
+    {
+        return d1 > d2 ? d1 : d2;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_min
     //
     template <typename T>
-    inline T es_min(T d1, T d2) { return d1 < d2 ? d1 : d2; }
+    inline T es_min(T d1, T d2)
+    {
+        return d1 < d2 ? d1 : d2;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
     //  es_sign
     //
-    inline double es_sign(double d) { return d >= 0 ? 1 : -1; }
+    inline double es_sign(double d)
+    {
+        return d >= 0 ? 1 : -1;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //
@@ -1175,27 +1123,19 @@ namespace ecmascript { namespace base_services {
     template <>
     inline bool es_lexical_cast<wchar_t *>(double d, wchar_t *str)
     {
-        using namespace std;
-//        static locale loc(
-//            locale(""), &use_facet<numpunct<char> >(locale::classic()));
-#if defined(ES_NOSTL)
-        swprintf(str, wcslen(str), L"%f", d);
-#else
-#    if defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
         std::stringstream ss;
         ss.imbue(std::locale::classic());
-//        ss.imbue(loc);
         ss << std::setprecision(15) << d;
         std::string const bufstr = ss.str();
         mbstowcs(str, bufstr.c_str(), bufstr.size() + 1);
-#    else
+#else
         std::wstringstream wss;
         wss.imbue(std::locale::classic());
-//        wss.imbue(loc);
         wss << std::setprecision(15) << d;
         wcscpy(str, wss.str().c_str());
-#    endif // defined(__CYGWIN__) || defined(__MINGW32__)
-#endif
+#endif // defined(__CYGWIN__) || defined(__MINGW32__)
+
         return true;
     }
 
@@ -1221,10 +1161,8 @@ namespace ecmascript { namespace base_services {
 #else
         int result_value = wcstol(str, 0, 10);
 #endif // _MSC_VER
-        if (result_value > INT_MAX)
-            return INT_MAX;
-        if (result_value < INT_MIN)
-            return INT_MIN;
+        if (result_value > INT_MAX || result_value < INT_MIN)
+            throw std::runtime_error("overflow/underflow:");
         return result_value;
     }
 
@@ -1485,7 +1423,7 @@ namespace ecmascript {
 
     //////////////////////////////////////////////////////////////////////////
     //
-    //  @fn es_heap_alloc
+    //  @class es_heap_alloc
     //
     template <typename valueT>
     valueT const* const es_heap_alloc(valueT initial_value) throw()
@@ -1499,7 +1437,7 @@ namespace ecmascript {
 
     //////////////////////////////////////////////////////////////////////////
     //
-    //  @fn es_clone_copy
+    //  @class es_clone_copy
     //
     template <typename valueT, typename iteratorT>
     inline valueT * es_clone_copy(
@@ -1511,11 +1449,11 @@ namespace ecmascript {
 //        if (__builtin_expect(0 < length, false))
 //            return es_clone_copy<valueT>(last, first);
         valueT * p = new (std::nothrow) valueT[length + 1];
-        if (NULL == p)
+        if (0 == p)
             return 0;
 //        std::copy(first, last, p);
         memcpy(p, first, sizeof(valueT) * length);
-        p[length] = NULL;
+        p[length] = 0;
         return p;
     }
 
@@ -1538,34 +1476,15 @@ namespace ecmascript {
 
         es_range() throw()
         : length_(0)
-        , buffer_(NULL)
+        , buffer_(0)
         {
-//            small_buffer_[0] = 0;
+            small_buffer_[0] = 0;
         }
 
         explicit es_range(error e) throw()
         : length_(0)
-        , buffer_(NULL)
+        , buffer_(0)
         {
-        }
-
-        explicit es_range(size_type size, value_type const value) throw()
-        : length_(size)
-        {
-            if (size >= sbo_size)
-            {
-                buffer_ = new (std::nothrow) value_type[size + 1];
-                ES_ASSERT(NULL != buffer_)
-                for (size_t i = 0; i < size; ++i)
-                    buffer_[i] = value;
-                buffer_[size] = NULL;
-            }
-            else
-            {
-                for (size_t i = 0; i < size; ++i)
-                    small_buffer_[i] = value;
-                small_buffer_[size] = NULL;
-            }
         }
 
         explicit es_range(const_iterator first, const_iterator last) throw()
@@ -1574,19 +1493,22 @@ namespace ecmascript {
             if (length_ >= sbo_size)
             {
                 buffer_ = es_clone_copy<value_type>(first, last);
-                ES_ASSERT(NULL != buffer_);
-            } 
-            else 
-            {
-                memcpy(small_buffer_, first, sizeof(value_type) * length_);
-                small_buffer_[length_] = NULL;
+                return;
             }
+            memcpy(small_buffer_, first, sizeof(value_type) * length_);
+            small_buffer_[length_] = 0;
         }
 
-        es_range(es_range const& rhs) throw() { assign(rhs); }
+        es_range(es_range const& rhs) throw()
+        {
+            assign(rhs);
+        }
 
-        es_range& 
-        operator =(es_range const& rhs) throw() { return assign(rhs), *this; }
+        es_range& operator =(es_range const& rhs) throw()
+        {
+            assign(rhs);
+            return *this;
+        }
 
         void assign(es_range const& rhs) throw()
         {
@@ -1594,16 +1516,9 @@ namespace ecmascript {
             if (length_ >= sbo_size)
             {
                 buffer_ = es_clone_copy<value_type>(rhs.begin(), rhs.end());
+                return;
             }
-            else
-            {
-                memcpy(small_buffer_, rhs.small_buffer_, sizeof(small_buffer_));
-            }
-        }
-
-        iterator begin() throw()
-        {
-            return length_ < sbo_size ? small_buffer_: buffer_;
+            memcpy(small_buffer_, rhs.small_buffer_, sizeof(small_buffer_));
         }
 
         const_iterator begin() const throw()
@@ -1611,15 +1526,15 @@ namespace ecmascript {
             return length_ < sbo_size ? small_buffer_: buffer_;
         }
 
-        iterator end() throw() { return begin() + length_; }
-        
-        const_iterator end() const throw() { return begin() + length_; }
+        const_iterator end() const throw()
+        {
+            return begin() + length_;
+        }
 
-        iterator rbegin() throw() { return end() - 1; }
-
-        const_iterator rbegin() const throw() { return end() - 1; }
-
-        value_type const *const c_str() const throw() { return begin(); }
+        value_type const *const c_str() const throw()
+        {
+            return begin();
+        }
 
         size_type length() const throw()
         {
@@ -1633,23 +1548,7 @@ namespace ecmascript {
 #endif
             return length_;
         }
-
-        size_type size() const throw() { return length_; }
-
-        void clear() throw() 
-        { 
-            length_ = 0; 
-            buffer_ = NULL;
-        }
-
     protected:
-        void change_length(size_type length) 
-        {
-            ES_ASSERT(length_ > length);
-            length_ = length;
-            *((length_ < sbo_size ? small_buffer_: buffer_) + length) = 0;
-        }
-
         ~es_range() throw()
         {
             if (length_ < sbo_size)// || 0 != --*counter_)
@@ -1676,7 +1575,6 @@ namespace ecmascript {
     {
         typedef valueT value_type;
         typedef es_range<valueT, true, true> range_t;
-        typedef typename range_t::size_type size_type;
         typedef es_string_base<value_type> self_t;
 
         explicit es_string_base() throw()
@@ -1692,14 +1590,9 @@ namespace ecmascript {
         }
 
         explicit es_string_base(
-            value_type const *const first,
-            value_type const *const last) throw()
+            wchar_t const *const first,
+            wchar_t const *const last) throw()
         : range_t(first, last)
-        {
-        }
-
-        explicit es_string_base(size_type size, value_type const value) throw()
-        : range_t(size, value)
         {
         }
 
@@ -1713,7 +1606,9 @@ namespace ecmascript {
         {
         }
 
-        ~es_string_base() throw() {}
+        ~es_string_base() throw()
+        {
+        }
 
         bool empty() const { return range_t::begin() == range_t::end(); }
 
@@ -1730,7 +1625,7 @@ namespace ecmascript {
                 range_t::begin(), range_t::end(), rhs, rhs + wcslen(rhs));
         }
 
-        bool operator != (self_t const& rhs) const throw()
+        bool operator != (std::wstring const& rhs) const throw()
         {
             return 0 != base_services::es_compare(
                 range_t::begin(), range_t::end(), &*rhs.begin(), &*rhs.end());
@@ -1742,30 +1637,34 @@ namespace ecmascript {
                 range_t::begin(), range_t::end(), rhs, rhs + wcslen(rhs));
         }
 
-        bool operator < (self_t const& rhs) const throw()
+        bool operator < (std::wstring const& rhs) const throw()
         {
             return 0 > base_services::es_compare(
                 range_t::begin(), range_t::end(), &*rhs.begin(), &*rhs.end());
         }
 
-        bool operator <= (self_t const& rhs) const throw()
+        bool operator <= (std::wstring const& rhs) const throw()
         {
             return 0 >= base_services::es_compare(
                 range_t::begin(), range_t::end(), &*rhs.begin(), &*rhs.end());
         }
 
-        bool operator > (self_t const& rhs) const throw()
+        bool operator > (std::wstring const& rhs) const throw()
         {
             return 0 < base_services::es_compare(
                 range_t::begin(), range_t::end(), &*rhs.begin(), &*rhs.end());
         }
 
-        bool operator >= (self_t const& rhs) const throw()
+        bool operator >= (std::wstring const& rhs) const throw()
         {
             return 0 <= base_services::es_compare(
                 range_t::begin(), range_t::end(), &*rhs.begin(), &*rhs.end());
         }
 
+        operator std::wstring const() const
+        {
+            return std::wstring(range_t::begin(), range_t::end());
+        }
     };
 
     template <typename valueT>
@@ -1804,7 +1703,9 @@ namespace ecmascript {
         typedef typename base_t::size_type size_type;
         typedef typename base_t::const_iterator const_iterator;
 
-        es_const_string() throw() {}
+        es_const_string() throw()
+        {
+        }
 
         template <typename iteratorT>
         explicit es_const_string(
@@ -1814,12 +1715,12 @@ namespace ecmascript {
         {
         }
 
-        explicit es_const_string(size_t size, valueT const value) throw()
-        : base_t(size, value)
+        es_const_string(std::basic_string<valueT> const& value) throw()
+        : base_t(&*value.begin(), &*value.end())
         {
         }
 
-        es_const_string(value_type const *const value) throw()
+        es_const_string(valueT const *const value) throw()
         : base_t(value, value + wcslen(value))
         {
         }
@@ -1829,12 +1730,8 @@ namespace ecmascript {
         {
         }
 
-        virtual ~es_const_string() throw() {}
-
-        valueT& at(size_type position) throw()
+        virtual ~es_const_string() throw()
         {
-            //ES_ASSERT(position < base_t::length());
-            return *(base_t::begin() + position);
         }
 
         valueT const& at(size_type position) const throw()
@@ -1843,12 +1740,9 @@ namespace ecmascript {
             return *(base_t::begin() + position);
         }
 
-        self_t const substr(size_type position) const throw()
-        {
-            return self_t(base_t::begin() + position, base_t::end());
-        }
-
-        self_t const substr(size_type position, size_type length) const throw()
+        es_const_string<valueT> const substr(
+            size_type position, size_type length)
+             const throw()
         {
             return self_t(
                 base_t::begin() + position,
@@ -1865,7 +1759,7 @@ namespace ecmascript {
             if (0 > position || position >= base_t::length())
                 return size_type(npos);
             //const_iterator it_rhs = search_string.begin();
-            value_type const* p_result
+            wchar_t const* p_result
                 = base_services::es_strstr(
                     base_t::c_str() + position, search_string.c_str());
             if (0 == p_result)
@@ -1874,55 +1768,19 @@ namespace ecmascript {
             return size_type(p_result - base_t::begin());
         }
 
-        size_type rfind(
-            es_const_string<valueT> const& search_string,
-            size_type position
-            ) const throw()
+        template <typename charT>
+        self_t const operator + (std::basic_string<charT> const& rhs) const throw()
         {
-            if (0 > position || position >= base_t::length())
-                return size_type(npos);
-            //const_iterator it_rhs = search_string.begin();
-            value_type const* p_result
-                = base_services::es_strrstr(
-                    base_t::begin(), base_t::end(), 
-                    search_string.begin(), search_string.end());
-            if (0 == p_result)
-                return size_type(npos);
-            ES_ASSERT(0 <= p_result - base_t::begin());
-            return size_type(p_result - base_t::begin());
+            value_type * it_begin = 0, * it_end = 0;
+            if (es_success != base_services::es_strcat(
+                base_t::begin(), base_t::end(),
+                &*rhs.begin(), &*rhs.end(),
+                &it_begin, &it_end))
+                return self_t(0);
+            return self_t(it_begin, it_end);
         }
 
-        self_t const& replace(
-            size_type position,
-            size_type length,
-            self_t const& str
-            ) throw()
-        {
-            if (length == str.length()) {
-                std::copy(str.begin(), str.end(), &at(position));
-            }
-            else if (length > str.length()) {
-                std::copy(str.begin(), str.end(), &at(position));
-                std::copy(&at(position + length), this->end(), &at(position + str.length()));
-                change_length(this->length() + str.length() - length);
-            }
-            else {
-                assign(substr(0, position) + str + substr(position + length)); 
-            }
-            return *this;
-        }
-
-        self_t& append(self_t const& rhs) throw()
-        {
-            return assign(*this + rhs), *this;
-        }
-
-        self_t& append(value_type const rhs) throw()
-        {
-            return assign(*this + self_t(1, rhs)), *this;
-        }
-
-        self_t const operator + (self_t const& rhs) const throw()
+        self_t const operator + (es_const_string const& rhs) const throw()
         {
             value_type * it_begin = 0, * it_end = 0;
             if (es_success != base_services::es_strcat(
@@ -1932,12 +1790,6 @@ namespace ecmascript {
                 return self_t(0);
             return self_t(it_begin, it_end);
         }
-
-        self_t& 
-        operator += (self_t const& rhs) throw() { return append(rhs); }
-
-        self_t& 
-        operator += (value_type const rhs) throw() { return append(rhs); }
 
     };
 
@@ -1950,10 +1802,19 @@ namespace ecmascript {
 
     typedef es_const_string<wchar_t> const_string_t;
 
-    template <typename valueT>
-    valueT *mmap_alloc(size_t size) 
+    inline std::size_t hash_value(const_string_t const& v)
     {
-        valueT * result = static_cast<valueT *>(es_malloc(size));
+        std::size_t seed = 0;
+        for(const_string_t::const_iterator it = v.begin(); it != v.end(); ++it)
+            seed ^= static_cast<std::size_t>(*it)
+                + /*0x9e3779b9 +*/ 0x9e370001UL + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+
+    template <typename valueT>
+    valueT *mmap_alloc(std::size_t size) 
+    {
+        valueT * result = static_cast<valueT *>(std::malloc(size));
 #if defined(_MSC_VER)
         DWORD dwOldProtect;
         BOOL bret = VirtualProtect(
@@ -1973,30 +1834,40 @@ namespace ecmascript {
     template <typename primitiveT>
     struct es_value_or_hint
     {
-        typedef ptrdiff_t hint_t;
-
         es_value_or_hint(primitiveT& primitive)
         : p_primitive_(&primitive)
         {
         }
         
-        es_value_or_hint(hint_t const hint)
+        es_value_or_hint(std::ptrdiff_t const hint)
         : hint_(hint)
         {
         }
         
-        bool const is_hint() const { return 0x3 == (0x3 & hint_); }
+        bool const is_hint() const
+        {
+            return 0x3 == (0x3 & hint_);
+        }
         
-        operator primitiveT *() const { return is_hint() ? 0 : p_primitive_; }
+        operator primitiveT *() const
+        {
+            return is_hint() ? 0 : p_primitive_;
+        }
         
-        operator primitiveT& () const { return *p_primitive_; }
+        operator primitiveT& () const 
+        {
+            return *p_primitive_;
+        }
 
-        operator hint_t const () const { return hint_; }
+        operator std::ptrdiff_t const () const 
+        {
+            return hint_;
+        }
         
     private:
         union {
             primitiveT *p_primitive_;
-            hint_t hint_;
+            std::ptrdiff_t hint_;
         };
         
     };

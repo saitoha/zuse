@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
 
-
-
-#include <setjmp.h>
 #include "unicode.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -27,52 +24,27 @@
 
 namespace ecmascript { namespace regular_expression {
 
-    namespace {
-
-    typedef ptrdiff_t ptrdiff_t;
-    typedef size_t size_t;
-
-    template <typename T>
-    struct iterator_traits;
-
-    template <typename T>
-    struct iterator_traits<T*>
-    {
-        typedef T value_type; 
-    };
-
-    } //  anonymous namespace
-
     //////////////////////////////////////////////////////////////////////////
     //
     // node_id
     //
     enum node_id
     {
-        Unknown, Character, GreedyStar, LazyStar, Union, Combine, Epsilon, 
-        Group, Dot, Final, Fail, Digit, NonDigit, Space, NonSpace, Word, 
-        NonWord, LineEnd, LineStart, Break, NonBreak, ClassRange, Repeat, 
-        RepeatMin, RepeatMinMax, GroupEnd, GroupFail, Root,
+        Unknown, Character, GreedyStar, LazyStar, Union,
+        Combine, Epsilon, Group, Dot, Final,
+        Fail, Digit, NonDigit, Space, NonSpace,
+        Word, NonWord, LineEnd, LineStart, Break,
+        NonBreak, ClassRange, Repeat, RepeatMin, RepeatMinMax,
+        GroupEnd, GroupFail, Root,
     };
 
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // result_id
-    //
-    enum result_id
-    {
-        RID_DEFAULT       = 0, 
-        RID_MATCH         = 1,
-        RID_PARSE_ERROR   = 2,
-    };
+    int isdigit(int c) { return ::isdigit(c); }
 
-    inline int isdigit(int c) throw() { return ::isdigit(c); }
+    int isalnum(int c) { return ::isalnum(c); }
 
-    inline int isalnum(int c) throw() { return ::isalnum(c); }
+    int isspace(int c) { return ::isspace(c); }
 
-    inline int isspace(int c) throw() { return ::isspace(c); }
-
-    inline int isalpha(int c) throw()
+    int isalpha(int c) 
     {
         switch (c)
         {
@@ -91,8 +63,24 @@ namespace ecmascript { namespace regular_expression {
                 return 0;
         }
     }
+ 
+
+    //////////////////////////////////////////////////////////////////////////
+    //
+    // re_parse_error
+    //
+    struct re_parse_error
+    {
+        re_parse_error(char const* message) throw() : message_(message) {}
+
+        char const* what() const throw() { return message_; }
+
+    private:
+        const char *message_;
+    };
 
 } } // namespace ecmascript::regular_expression
+
 
 namespace ecmascript { namespace regular_expression { namespace scanner {
 
@@ -105,66 +93,43 @@ namespace ecmascript { namespace regular_expression { namespace scanner {
     {
         typedef iteratorT iterator_t;
         typedef re_scanner<iteratorT> self_t;
-        typedef typename iterator_traits<iterator_t>::value_type value_type;
+        typedef typename std::iterator_traits<iterator_t>::value_type
+            value_type;
 
-        explicit re_scanner(iteratorT const begin, iteratorT const end) throw()
-        : current_(begin), first_(begin), last_(end)
+        explicit re_scanner(iteratorT begin, iteratorT end)
+        : first_(begin), current_(begin), last_(end)
         {
         }
 
-        self_t& operator ++() throw() { return ++current_, *this; }
+        template <typename stringT>
+        explicit re_scanner(stringT const& source)
+        : first_(source.begin()), current_(source.begin()), last_(source.end())
+        {
+        }
 
-        self_t& operator --() throw() { return --current_, *this; }
+        self_t& operator ++() { return ++current_, *this; }
 
-        value_type const& operator *() const throw() { return *current_; }
+        self_t& operator --() { return --current_, *this; }
 
-        bool is_first() const throw() { return current_ == first_; }
+        value_type const& operator *() const { return *current_; }
 
-        bool is_end() const throw() { return current_ == last_; }
+        bool is_first() const { return current_ == first_; }
 
-        bool is_word() const throw() { return isalnum(*current_) || '_' == *current_; }
-       
-        iterator_t const current() const throw() { return current_; } 
+        bool is_end() const { return current_ == last_; }
 
-    protected:
-        iterator_t current_;
-    private:
-        iterator_t const first_, last_;
+        bool is_word() const
+        {
+            return isalnum(*current_) || '_' == *current_ ;
+        }
+
+        iteratorT first_, current_, last_;
     };
 
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // re_scanner_with_context
-    //
     template <typename iteratorT>
-    struct re_scanner_with_context : re_scanner<iteratorT>
+    re_scanner<iteratorT> re_scanner_gen(iteratorT begin, iteratorT end)
     {
-        typedef iteratorT iterator_t;
-        typedef re_scanner_with_context<iterator_t> self_t;
-        typedef re_scanner<iterator_t> base_t;
-
-        explicit re_scanner_with_context(
-            iterator_t const begin, 
-            iterator_t const end, 
-            jmp_buf& jbuf) throw()
-        : base_t(begin, end), jbuf_(jbuf)
-        {
-        }
-
-        self_t& operator ++() throw() { return ++this->current_, *this; }
-
-        self_t& operator --() throw() { return --this->current_, *this; }
-
-        void throw_parse_error(wchar_t const *message) 
-        { 
-            message_ = message; 
-            longjmp(jbuf_, RID_PARSE_ERROR);
-        }
-
-        jmp_buf& jbuf_;
-        wchar_t const *message_;
-    };
+        return re_scanner<iteratorT>(begin, end);
+    }
 
 } } } // namespace ecmascript::regular_expression::scanner
 
@@ -184,22 +149,22 @@ namespace ecmascript { namespace regular_expression { namespace node {
         typedef nodeT value_type;
         typedef re_iterator<value_type> self_t;
 
-        explicit re_iterator(value_type * p_value) throw()
-        : p_value_(p_value) 
+        explicit re_iterator(value_type *p_value) : p_value_(p_value) { }
+
+        self_t const operator ++()
         {
+            return self_t(p_value_ = p_value_->next_);
         }
 
-        self_t const operator ++() throw() { return self_t(p_value_ = p_value_->next_); }
+        value_type* const operator ->() const { return p_value_; }
 
-        value_type* const operator ->() const throw() { return p_value_; }
+        value_type* const* const operator &() const { return &p_value_; }
 
-        value_type* const* const operator &() const throw() { return &p_value_; }
+        value_type const& operator *() const { return *p_value_; }
 
-        value_type const& operator *() const throw() { return *p_value_; }
+        operator value_type const* const() const { return p_value_; }
 
-        operator value_type const* const() const throw() { return p_value_; }
-
-        bool is_end() const throw() { return 0 == p_value_; }
+        bool is_end() const { return 0 == p_value_; }
 
     private:
         value_type * p_value_;
@@ -216,11 +181,11 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_character_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->go_to_false_node(scan, matcher);
-                if (it->letter() == *scan)
+                if (*scan == it->letter())
                     return it->go_to_true_node(++scan, matcher);
                 return it->go_to_false_node(scan, matcher);
             }
@@ -233,13 +198,13 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_greedy_star_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->go_to_true_node(scan, matcher);
-                if (it->children_begin()->action(scan, matcher))
-                    return true;
-                return it->go_to_true_node(scan, matcher);
+                if (-1 == it->children_begin()->action(scan, matcher))
+                    return it->go_to_true_node(scan, matcher);
+                return 0;
             }
         };
 
@@ -250,14 +215,13 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_lazy_star_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->go_to_true_node(scan, matcher);
-                if (it->go_to_true_node(scan, matcher))
-                    return 0;
-                if (it->children_begin()->action(scan, matcher))
-                    return it->go_to_true_node(scan, matcher);
+                if (-1 == it->go_to_true_node(scan, matcher)
+                    && -1 != it->children_begin()->action(scan, matcher))
+                        return it->go_to_true_node(scan, matcher);
                 return 0;
             }
         };
@@ -269,7 +233,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_union_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return it->children_begin()->action(scan, matcher);
             }
@@ -282,9 +246,9 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_combine_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
-                if (it->children_begin()->action(scan, matcher))
+                if (-1 != it->children_begin()->action(scan, matcher))
                     return it->go_to_true_node(scan, matcher);
                 return it->go_to_false_node(scan, matcher);
             }
@@ -297,7 +261,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_epsilon_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return it->go_to_true_node(scan, matcher);
             }
@@ -310,9 +274,10 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_group_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
-                matcher.clone(scan.current(), scan.current(), matcher.jbuf_);
+                matcher.next_ = new matchT(scan.current_, scan.current_);
+                matcher.next_->prev_ = &matcher;
                 return it->children_begin()->action(scan, *matcher.next_);
             }
         };
@@ -324,10 +289,10 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_dot_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
-                    return false;
+                    return -1;
                 return it->go_to_true_node(++scan, matcher);
             }
         };
@@ -339,13 +304,12 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_final_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
-                if (matcher.first_ == scan.current())
-                    return false;
-                matcher.match(scan.current());
-                __assume(0);
-                exit(-1);
+                if (matcher.first_ == scan.current_)
+                    return -1;
+                matcher.last_ = scan.current_;
+                throw scan;
             }
         };
 
@@ -356,9 +320,9 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_fail_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
-                return false;
+                return -1;
             }
         };
 
@@ -369,10 +333,10 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_digit_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
-                    return false;
+                    return -1;
                 if (isdigit(*scan))
                     return it->go_to_true_node(++scan, matcher);
                 return it->go_to_false_node(scan, matcher);
@@ -386,7 +350,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_non_digit_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->go_to_false_node(scan, matcher);
@@ -403,7 +367,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_space_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->go_to_false_node(scan, matcher);
@@ -420,13 +384,13 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_non_space_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
-                    return false;
-                if (isspace(*scan))
-                    return it->go_to_false_node(scan, matcher);
-                return it->go_to_true_node(++scan, matcher);
+                    return -1;
+                if (!isspace(*scan))
+                    return it->go_to_true_node(++scan, matcher);
+                return it->go_to_false_node(scan, matcher);
             }
         };
 
@@ -437,11 +401,11 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_word_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
-                    return false;
-                if (isalnum(*scan) || '_' == *scan)
+                    return -1;
+                if (isalnum(*scan) || *scan == '_')
                     return it->go_to_true_node(++scan, matcher);
                 return it->go_to_false_node(scan, matcher);
             }
@@ -454,11 +418,11 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_non_word_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
-                    return false;
-                if (!isalnum(*scan) && '_' != *scan)
+                    return -1;
+                if (!isalnum(*scan) && *scan != '_')
                     return it->go_to_true_node(++scan, matcher);
                 return it->go_to_false_node(scan, matcher);
             }
@@ -471,7 +435,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_line_start_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_first())
                     return it->true_->action(scan, matcher);
@@ -495,7 +459,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_line_end_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (scan.is_end())
                     return it->true_->action(scan, matcher);
@@ -519,7 +483,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_break_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const 
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return current_character_is_word(scan)
                     != previous_character_is_word(scan) ?
@@ -551,7 +515,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_non_break_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return current_character_is_word(scan)
                     == previous_character_is_word(scan) ?
@@ -583,7 +547,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_class_range_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 if (it->child_->letter_ > *scan)
                     return it->go_to_false_node(scan, matcher);
@@ -600,9 +564,9 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_group_end_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
-                matcher.last_ = scan.current();
+                matcher.last_ = scan.current_;
                 return it->go_to_true_node(scan, *matcher.prev_);
             }
         };
@@ -614,7 +578,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_group_fail_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return it->go_to_false_node(scan, *matcher.prev_);
             }
@@ -627,7 +591,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         struct re_root_action
         {
             template <typename scannerT, typename iteratorT, typename matchT>
-            bool action(iteratorT const it, scannerT scan, matchT& matcher) const
+            int action(iteratorT it, scannerT scan, matchT& matcher) const
             {
                 return it->children_begin()->action(scan, matcher);
             }
@@ -640,7 +604,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
         // call_action
         //
         template <typename scannerT, typename iteratorT, typename matchT>
-        bool call_action(iteratorT const it, scannerT scan, matchT& matcher)
+        int call_action(iteratorT it, scannerT scan, matchT& matcher)
         {
             switch (it->id_)
             {
@@ -693,8 +657,7 @@ namespace ecmascript { namespace regular_expression { namespace node {
                 case Root:
                     return re_root_action().action(it, scan, matcher);
                 default:
-                    __assume(0);
-                    exit(-1);
+                    throw;
             }
         }
 
@@ -712,56 +675,54 @@ namespace ecmascript { namespace regular_expression { namespace node {
         typedef re_node<char_t> self_t;
         typedef re_iterator<self_t> iterator;
 
-        re_node() throw()
+        re_node()
         : letter_(0), id_(Unknown), next_(0), child_(0), true_(0), false_(0)
         {
         }
 
-        explicit re_node(node_id id) throw()
+        explicit re_node(node_id id)
         : letter_(0), id_(id), next_(0), child_(0), true_(0), false_(0)
         {
         }
 
-        explicit re_node(char_t c) throw()
+        explicit re_node(char_t c)
         : letter_(c), id_(Character), next_(0), child_(0), true_(0), false_(0)
         {
         }
 
-        ~re_node() throw() { if (next_) delete next_; }
-
-        self_t const& insert(self_t& node) throw()
+        self_t const& insert(self_t& node)
         {
             return next_ == 0 ? *(next_ = &node): next_->insert(node);
         }
 
-        self_t const& add(self_t& node) throw()
+        self_t const& add(self_t& node)
         {
             return child_ == 0 ? *(child_ = &node): child_->insert(node);
         }
 
-        self_t& clone() const throw() { return *new self_t(*this); }
+        self_t& clone() const { return *new self_t(*this); }
 
         template <typename scannerT, typename matchT>
-        bool go_to_true_node(scannerT scan, matchT& matcher) const
+        int go_to_true_node(scannerT scan, matchT& matcher) const
         {
             return true_->action(scan, matcher);
         }
 
         template <typename scannerT, typename matchT>
-        bool go_to_false_node(scannerT scan, matchT& matcher) const
+        int go_to_false_node(scannerT scan, matchT& matcher) const
         {
-            return false_ ? false_->action(scan, matcher): false;
+            return false_ ? false_->action(scan, matcher): -1;
         }
 
         template <typename scannerT, typename matchT>
-        bool action(scannerT scan, matchT& matcher)
+        int action(scannerT scan, matchT& matcher)
         {
             return action::call_action(iterator(this), scan, matcher);
         }
 
-        char_t const letter() const throw() { return letter_; }
+        char_t const letter() const { return letter_; }
 
-        iterator children_begin() const throw() { return iterator(child_); }
+        iterator children_begin() const { return iterator(child_); }
 
         char_t const letter_;
         node_id id_;
@@ -789,33 +750,18 @@ namespace ecmascript { namespace regular_expression { namespace match {
     {
         typedef iteratorT iterator_t;
         typedef re_match<iterator_t> self_t;
-
-        explicit re_match(iterator_t const begin, const iterator_t end, self_t *prev, jmp_buf& jbuf) throw()
-        : first_(begin), last_(end), next_(0), prev_(prev), jbuf_(jbuf)
+        explicit re_match(iterator_t const begin, const iterator_t end)
+        : first_(begin), last_(end), next_(0), prev_(0)
         {
         }
 
-        ~re_match() throw() { if (next_) delete next_; }
-
-        void clone(iterator_t const begin, const iterator_t end, jmp_buf& jbuf) throw()
-        {
-            next_ = new self_t(begin, end, this, jbuf);
-        }
-
-        bool success() const throw() { return first_ != last_; }
-
-        void match(iteratorT const it) 
-        {
-            last_ = it;
-            longjmp(jbuf_, RID_MATCH);
-        }
+        bool success() const { return first_ != last_; }
 
 //    private:
-        iterator_t const first_;
+        iterator_t first_;
         iterator_t last_;
         self_t *next_;
-        self_t * const prev_;
-        jmp_buf& jbuf_;
+        self_t *prev_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -823,22 +769,20 @@ namespace ecmascript { namespace regular_expression { namespace match {
     // @fn re_match_test
     //
     template <typename scannerT, typename nodeT>
-    bool re_match_test(scannerT& scan, nodeT& node, re_match<typename scannerT::iterator_t>& match)
+    re_match<typename scannerT::iterator_t>
+    re_match_test(scannerT& scan, nodeT& node)
     {
         typedef typename scannerT::iterator_t iterator_t;
-        typedef re_match<iterator_t> match_t;
         for (; !scan.is_end(); ++scan)
         {
-            switch (setjmp(match.jbuf_))
-            {
-                case RID_DEFAULT:
-                    node.action(scan, match);
-                    break;
-                case RID_MATCH:
-                    return true;
+            re_match<iterator_t> matcher(scan.current_, scan.current_);
+            try {
+                node.action(scan, matcher);
+            } catch(scannerT&) {
+                return matcher;
             }
         }
-        return false;
+        return re_match<iterator_t>(scan.current_, scan.current_);
     }
 
 } } } // namespace ecmascript::regular_expression::match
@@ -929,7 +873,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
                     return false;
                 if (scan.is_end())
                     return true;
-                if ('|' != *scan)
+                if (*scan != '|')
                     return true;
                 return parse_impl(++scan, node), true;
             }
@@ -1125,7 +1069,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             {
                 node.id_ = Union;
                 nodeT& epsilon_node = *new nodeT(Epsilon);
-                if ('?' != *scan)
+                if (*scan != '?')
                     return node.add(epsilon_node), true;
                 ++scan;
                 epsilon_node.next_ = node.child_;
@@ -1139,18 +1083,18 @@ namespace ecmascript { namespace regular_expression { namespace parser {
                 unsigned int first, second;
                 node.id_ = Combine;
                 if (!re_decimal_digits_parser().parse(scan, node, first))
-                    scan.throw_parse_error(L"illegal quantifier: digits are expected.");
-                if ('}' == *scan) // match - { decimaldigits }
+                    throw re_parse_error("illegal quantifier: digits are expected.");
+                if (*scan == '}') // match - { decimaldigits }
                     return parse_repeat_impl(++scan, node, first);
-                if (',' != *scan || (++scan).is_end())
-                    scan.throw_parse_error(L"illegal quantifier: [,}] is expected.");
-                if ('}' == *scan) // match - { DecimalDigits , }
+                if (*scan != ',' || (++scan).is_end())
+                    throw re_parse_error("illegal quantifier: [,}] is expected.");
+                if (*scan == '}') // match - { DecimalDigits , }
                     return parse_repeat_min_impl(++scan, node, first);
                 if (!re_decimal_digits_parser().parse(scan, node, second))
-                    scan.throw_parse_error(L"illegal quantifier: digits are expected.");
-                if ('}' != *scan) // not match - { DecimalDigits , DecimalDigits }
-                    scan.throw_parse_error(L"illegal quantifier: '}' is expected.");
-                return parse_repeat_min_max_impl(++scan, node, first, second);
+                    throw re_parse_error("illegal quantifier: digits are expected.");
+                if (*scan == '}') // match - { DecimalDigits , DecimalDigits }
+                    return parse_repeat_min_max_impl(++scan, node, first, second);
+                throw re_parse_error("illegal quantifier: '}' is expected.");
             }
 
             template <typename scannerT, typename nodeT>
@@ -1252,9 +1196,9 @@ namespace ecmascript { namespace regular_expression { namespace parser {
 
         private:
             template <typename scannerT, typename nodeT>
-            bool parse_impl_atom_escape(scannerT& scan, nodeT& node) const
+            int parse_impl_atom_escape(scannerT& scan, nodeT& node) const
             {
-                if ('\\' != *scan)
+                if (*scan != '\\')
                     return false;
                 ++scan;
                 if (!re_atom_escape_parser().parse(scan, node))
@@ -1263,16 +1207,16 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             }
 
             template <typename scannerT, typename nodeT>
-            bool parse_impl_grouped(scannerT& scan, nodeT& node) const
+            int parse_impl_grouped(scannerT& scan, nodeT& node) const
             {
-                if ('(' != *scan)
+                if (*scan != '(')
                     return false;
                 ++scan;
                 nodeT& new_node = *new nodeT(Group);
                 if (!re_disjunction_parser().parse(scan, new_node))
-                    scan.throw_parse_error(L"atom: a disjunction is expected.");
-                if (')' != *scan)
-                    scan.throw_parse_error(L"atom: ')' is expected.");
+                    throw re_parse_error("atom: a disjunction is expected.");
+                if (*scan != ')')
+                    throw re_parse_error("atom: ')' is expected.");
                 ++scan;
                 new_node.add(*new nodeT(GroupFail));
                 new_node.add(*new nodeT(GroupEnd));
@@ -1281,11 +1225,11 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             }
 
             template <typename scannerT, typename nodeT>
-            bool parse_impl_dot(scannerT& scan, nodeT& node) const
+            int parse_impl_dot(scannerT& scan, nodeT& node) const
             {
                 if (scan.is_end())
                     return false;
-                if ('.' != *scan)
+                if (*scan != '.')
                     return false;
                 ++scan;
                 node.add(*new nodeT(Dot));
@@ -1374,7 +1318,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             bool parse_control_letter_impl(
                 scannerT& scan, nodeT& node, unsigned int& value) const
             {
-                if ('c' != *scan)
+                if (*scan != 'c')
                     return false;
                 ++scan;
                 if (re_control_letter_parser().parse(scan, node, value))
@@ -1449,9 +1393,11 @@ namespace ecmascript { namespace regular_expression { namespace parser {
         struct re_decimal_escape_parser
         {
             template <typename scannerT, typename nodeT>
-            bool parse(scannerT& scan, nodeT& node, unsigned int value = 0) const
+            bool parse(
+                scannerT& scan, nodeT& node, unsigned int value = 0) const
             {
-                if (re_decimal_integer_literal_parser().parse(scan, node, value))
+                if (re_decimal_integer_literal_parser().parse(
+                    scan, node, value))
                     return true;
                 return false;
             }
@@ -1493,16 +1439,18 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             template <typename scannerT, typename nodeT>
             bool parse(scannerT& scan, nodeT& node) const
             {
-                if ('[' != *scan)
+                if (*scan != '[')
                     return false;
                 ++scan;
-                if ('^' == *scan)
+                if (*scan == '^')
                     ++scan;
                 nodeT& new_node = *new nodeT(Union);
                 if (!re_class_ranges_parser().parse(scan, new_node))
-                    scan.throw_parse_error(L"illegal character struct: illegal range.");
-                if (']' != *scan)
-                    scan.throw_parse_error(L"illegal character struct: ']' is expected.");
+                    throw re_parse_error(
+                        "illegal character struct: illegal range.");
+                if (*scan != ']')
+                    throw re_parse_error(
+                        "illegal character struct: ']' is expected.");
                 node.add(new_node);
                 ++scan;
                 return true;
@@ -1543,16 +1491,18 @@ namespace ecmascript { namespace regular_expression { namespace parser {
                     return false;
                 if (re_nonempty_class_ranges_no_dash_parser().parse(scan, node))
                     return node.add(*new_node.child_), true;
-                if ('-' != *scan)
+                if (*scan != '-')
                     return node.add(*new_node.child_), true;
                 ++scan;
-                if (']' == *scan)
+                if (*scan == ']')
                     return node.add(*new_node.child_), node.add(*new nodeT('-')), true;
                 if (!re_class_atom_parser().parse(scan, new_node))
-                    scan.throw_parse_error(L"illegal struct ranges: a class atom exprected.");
+                    throw re_parse_error(
+                        "illegal struct ranges: a class atom exprected.");
                 node.add(new_node);
                 if (!re_class_ranges_parser().parse(scan, node))
-                    scan.throw_parse_error(L"illegal struct ranges: a struct ranges exprected.");
+                    throw re_parse_error(
+                        "illegal struct ranges: a struct ranges exprected.");
                 return true;
             }
         };
@@ -1574,16 +1524,18 @@ namespace ecmascript { namespace regular_expression { namespace parser {
                     return false;
                 if (re_nonempty_class_ranges_no_dash_parser().parse(scan, node))
                     return node.add(*new_node.child_), true;
-                if ('-' != *scan)
+                if (*scan != '-')
                     return node.add(*new_node.child_), true;
                 ++scan;
-                if (']' == *scan)
+                if (*scan == ']')
                     return node.add(*new_node.child_), node.add(*new nodeT('-')), true;
                 if (!re_class_atom_no_dash_parser().parse(scan, new_node))
-                    scan.throw_parse_error(L"illegal struct ranges: a struct atom is expected.");
+                    throw re_parse_error(
+                        "illegal struct ranges: a struct atom is expected.");
                 node.add(new_node);
                 if (!re_class_ranges_parser().parse(scan, node))
-                    scan.throw_parse_error(L"illegal struct ranges: a struct ranges exprected.");
+                    throw re_parse_error(
+                        "illegal struct ranges: a struct ranges exprected.");
                 return true;
             }
         };
@@ -1599,7 +1551,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             template <typename scannerT, typename nodeT>
             bool parse(scannerT& scan, nodeT& node) const
             {
-                if ('-' == *scan)
+                if (*scan == '-')
                     return ++scan, true;
                 if (re_class_atom_no_dash_parser().parse(scan, node))
                     return true;
@@ -1653,7 +1605,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
                     return false;
                 if (re_decimal_escape_parser().parse(scan, node))
                     return true;
-                if ('b' == *scan)
+                if (*scan == 'b')
                     return ++scan, true;
                 if (re_character_escape_parser().parse(scan, node))
                     return true;
@@ -1730,7 +1682,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
             template <typename scannerT, typename nodeT>
             bool parse(scannerT& scan, nodeT& node, unsigned int& value) const
             {
-                if ('0' == *scan)
+                if (*scan == '0')
                     return ++scan, value = 0, true;
                 if (!re_non_zero_digit_parser().parse(scan, node, value))
                     return false;
@@ -1750,22 +1702,22 @@ namespace ecmascript { namespace regular_expression { namespace parser {
     struct re_nfa_converter
     {
         template <typename scannerT, typename nodeT>
-        bool re_create_nfa(scannerT& scan, nodeT& node) throw()
+        bool re_create_nfa(scannerT& scan, nodeT& node)
         {
             switch (node.id_)
             {
                 case Union:
-                    for (nodeT *i = node.child_; 0 != i; i = i->next_)
+                    for (nodeT *i = node.child_; i != 0; i = i->next_)
                     {
                         i->true_ = node.true_;
                         i->false_ = i->next_ ? i->next_ : node.false_;
                     }
                     break;
                 case Combine:
-                    for (nodeT *i = node.child_; 0 != i; i = i->next_)
+                    for (nodeT *i = node.child_; i != 0; i = i->next_)
                     {
                         i->true_ = i->next_ ? i->next_ : node.true_;
-                        i->false_ = 0;
+                        i->false_ = 0;//it->false_;
                     }
                     break;
                 case GreedyStar:
@@ -1796,7 +1748,7 @@ namespace ecmascript { namespace regular_expression { namespace parser {
         bool re_parse_impl(scannerT& scan, nodeT& node)
         {
             re_create_nfa(scan, node);
-            for (nodeT *it = node.child_; 0 != it; it = it->next_)
+            for (nodeT *it = node.child_; it != 0; it = it->next_)
             {
                 re_parse_impl(scan, *it);
             }
@@ -1807,13 +1759,13 @@ namespace ecmascript { namespace regular_expression { namespace parser {
 
     //////////////////////////////////////////////////////////////////////////
     //
-    // re_parse
+    // re_nfa_converter
     //
     template <typename scannerT, typename nodeT>
     bool re_parse(scannerT& scan, nodeT& node)
     {
         if (!re_parser().parse(scan, node))
-            return false;
+            throw re_parse_error("unknown error");
         node.true_ = new nodeT(Final);
         node.false_ = new nodeT(Fail);
         return re_nfa_converter().re_parse_impl<scannerT, nodeT>(scan, node);
@@ -1899,7 +1851,7 @@ namespace ecmascript {
                 throw *new es_syntax_error<string_t>(L"es_regexp::es_regexp");
         }
 
-        ~es_regexp() throw() { delete &parse_tree_; }
+        ~es_regexp() throw() {}
 
         const_string_t const class__() const throw() { return L"RegExp"; }
 
@@ -1910,7 +1862,13 @@ namespace ecmascript {
                 + (flag_ignore_case_ ? L"i": L"")
                 + (flag_multiline_ ? L"m": L"");
         }
-        
+
+        operator string_t const() const
+        {
+            return L"/" + source_ + L"/" + (flag_global_ ? L"g": L"")
+                + (flag_ignore_case_ ? L"i": L"")
+                + (flag_multiline_ ? L"m": L"");
+        }
 // IRegExp
         IPrimitive& __stdcall internal_print() const
         {
@@ -1929,9 +1887,8 @@ namespace ecmascript {
             const_string_t const& str 
                 = input_string.operator const_string_t const();
             scanner_t scan(str.begin() + (flag_global_ ? last_index_: 0), str.end());
-            jmp_buf jbuf;
-            match_t match(scan.current(), scan.current(), 0, jbuf);
-            if (!re_match_test(scan, parse_tree_, match))
+            match_t match = re_match_test(scan, parse_tree_);
+            if (!match.success())
                 return last_index_ = 0, es_null<string_t>::create_instance();
             match_t * p_match = &match;
             IArray& result = *new es_array<string_t>();
@@ -1981,24 +1938,13 @@ namespace ecmascript {
             source_ = source;
             for (const_string_t::const_iterator it = flag.begin();
                 it != flag.end(); ++it)
-                'g' == *it ? (flag_global_ = true):
-                'i' == *it ? (flag_ignore_case_ = true):
-                'm' == *it && (flag_multiline_ = true);
+                *it == 'g' ? (flag_global_ = true):
+                *it == 'i' ? (flag_ignore_case_ = true):
+                *it == 'm' && (flag_multiline_ = true);
             typedef typename const_string_t::const_iterator iterator_t;
-            jmp_buf jbuf;
-            using namespace regular_expression;
-            scanner::re_scanner_with_context<iterator_t>
-                scan(source.begin(), source.end(), jbuf);
-            switch (setjmp(scan.jbuf_)) 
-            {
-            case RID_DEFAULT:
-                return parser::re_parse(scan, parse_tree_);
-            case RID_PARSE_ERROR:
-                throw *new es_syntax_error<string_t>(scan.message_);
-            default:
-                __assume(0);
-                exit(0);
-            }
+            regular_expression::scanner::re_scanner<iterator_t>
+                scan(source.begin(), source.end());
+            return regular_expression::parser::re_parse(scan, parse_tree_);
         }
 
         template <typename charT>
@@ -2047,11 +1993,11 @@ namespace ecmascript {
             ES_STATIC_ASSERT(sizeof(void *) == sizeof(unsigned long));
             wprintf(
                 L"%s%x %s  t: %x  f: %x :"
-                , const_string_t(depth, L' ').c_str()
-                , reinterpret_cast<ptrdiff_t>(&*it) % 0x10000
+                , std::wstring(depth, L' ').c_str()
+                , reinterpret_cast<std::ptrdiff_t>(&*it) % 0x10000
                 , id_str<char>(it->id_)
-                , reinterpret_cast<ptrdiff_t>(it->true_) % 0x10000
-                , reinterpret_cast<ptrdiff_t>(it->false_) % 0x10000
+                , reinterpret_cast<std::ptrdiff_t>(it->true_) % 0x10000
+                , reinterpret_cast<std::ptrdiff_t>(it->false_) % 0x10000
                 );
 #ifdef _MSC_VER
 #  pragma warning(pop)
@@ -2074,7 +2020,7 @@ namespace ecmascript {
 
     private:
         node_t& parse_tree_;
-        ptrdiff_t last_index_;
+        std::ptrdiff_t last_index_;
         const_string_t source_;
         bool flag_global_;
         bool flag_ignore_case_;

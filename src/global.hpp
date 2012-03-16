@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -93,11 +92,11 @@ namespace ecmascript {
             compile_and_run(closure, vm_);         
 #else
 #   if ES_TRACE_RUNNING_TIME
-            clock_t t = clock();
+            std::clock_t t = std::clock();
 #   endif // ES_TRACE_RUNNING_TIME
             closure(vm_);
 #   if ES_TRACE_RUNNING_TIME
-            wprintf(L"eval: %.3f\n", double(clock() - t) / CLOCKS_PER_SEC);
+            wprintf(L"eval: %.3f\n", double(std::clock() - t) / CLOCKS_PER_SEC);
 #   endif // ES_TRACE_RUNNING_TIME
 #endif // ES_TEST_JIT
             vm_.set_esp(esp);
@@ -202,7 +201,7 @@ namespace ecmascript {
 
         explicit es_global(IPrimitive& parent) throw()
         {
-            static es_activation_object<string_t> 
+            static es_activation_object<std::wstring> 
                 activation_object(*this, parent);
             vm_.set_ecx(activation_object);
             es_machine<IPrimitive>::get_gc().set_root(*this);

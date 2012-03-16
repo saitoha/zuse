@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 namespace ecmascript {
 	
@@ -44,7 +43,7 @@ namespace ecmascript {
                 return scan.no_match();
             ES_ASSERT(it_end - s > 0);
             scan.first = it_end;
-            return scan.create_match(size_t(it_end - s), result, s, scan.first);
+            return scan.create_match(std::size_t(it_end - s), result, s, scan.first);
         }
 		
     };
@@ -61,7 +60,7 @@ namespace ecmascript {
         template <typename ScannerT>
         struct result
         {
-            typedef typename spirit::match_result<ScannerT, const_string_t>::type
+            typedef typename spirit::match_result<ScannerT, std::wstring>::type
 			type;
         };
 		
@@ -79,18 +78,18 @@ namespace ecmascript {
             > policies_t;
             scan.skip(scan);
             iterator_t const s(scan.first);
-            const_string_t buffer;
-            ptrdiff_t len = escapechar_parse(scan.change_policies(policies_t(scan)), buffer);
+            std::wstring buffer;
+            std::ptrdiff_t len = escapechar_parse(scan.change_policies(policies_t(scan)), buffer);
             if (len < 0)
                 return scan.no_match();
             ES_ASSERT(len >= 0);
-            return scan.create_match(size_t(len), buffer, s, scan.first);
+            return scan.create_match(std::size_t(len), buffer, s, scan.first);
         }
 		
     private:
         template <typename ScannerT>
-        ptrdiff_t
-        escapechar_parse(ScannerT const& scan, const_string_t& buffer) const
+        std::ptrdiff_t
+        escapechar_parse(ScannerT const& scan, std::wstring& buffer) const
         {
             typedef typename spirit::parser_result<self_t, ScannerT>::type
 			result_t;

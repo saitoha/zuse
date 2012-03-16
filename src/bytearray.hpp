@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 namespace ecmascript {
 
@@ -58,8 +57,10 @@ namespace ecmascript {
     //
     struct es_byte_array
     : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<IByteArray, es_const_string> >
+        base_classes::es_object_impl<
+            IByteArray, std::basic_string<wchar_t> > >
     {
+        typedef std::basic_string<wchar_t> string_t;
         typedef base_classes::es_object_impl<IByteArray, string_t> object_t;
         typedef es_boolean<string_t> boolean_t;
         typedef std::vector<unsigned char> value_t;
@@ -100,7 +101,19 @@ namespace ecmascript {
                 stream << L' ' << std::setw(2) << *it;
             return stream.str();
         }
-        
+
+        operator string_t const() const
+        {
+            std::basic_stringstream<wchar_t> stream;
+            stream << std::hex << std::setfill(L'0');
+            value_t::const_iterator it = vec_.begin();
+            if (it == vec_.end())
+                return stream.str();
+            stream << std::setw(2) << *it;
+            while (++ it != vec_.end())
+                stream << L' ' << std::setw(2) << *it;
+            return stream.str();
+        }
 // IByteArray
         INumber& __stdcall push(IPrimitive& object)
         {
@@ -116,12 +129,12 @@ namespace ecmascript {
                         = object.get_by_value__(next_object)
                             .get_value__().operator ecmascript::uint16_t();
                     if ((2 << 8) - 1 > uint16_value)
-                        return *new es_type_error<string_t>(L"Type Error: bytearray::push");
+                        throw *new es_type_error<string_t>(L"Type Error: bytearray::push");
                     vec_.push_back(ecmascript::uint8_t(uint16_value));
                 }
             ecmascript::uint16_t uint16_value = object.operator ecmascript::uint16_t();
             if (uint16_value > 0xff)
-                return *new es_type_error<string_t>(L"Type Error: bytearray::push");
+                throw *new es_type_error<string_t>(L"Type Error: bytearray::push");
             vec_.push_back(ecmascript::uint8_t(uint16_value));
             return length();
         }

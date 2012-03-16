@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-
 namespace ecmascript {
 
     namespace impl {
 
         template <typename ScannerT>
-        inline bool cmp(ScannerT const& scan, char const* it, int& len)
+        inline bool
+        cmp(ScannerT const& scan, char const* it, int& len)
         {
             if (*it == '\0')
                 return !unicode::test<IdentifierChar>(*scan);
@@ -32,7 +32,8 @@ namespace ecmascript {
         }
 
         template <typename ScannerT>
-        inline int scan_to_end(ScannerT const& scan, int len)
+        inline int
+        scan_to_end(ScannerT const& scan, int len)
         {
             while (unicode::test<IdentifierChar>(*scan))
                 ++len, ++scan;
@@ -40,7 +41,8 @@ namespace ecmascript {
         }
 
         template <typename ScannerT>
-        ptrdiff_t identifier_parse(ScannerT const& scan)
+        std::ptrdiff_t
+        identifier_parse(ScannerT const& scan)
         {
 
             int len = 0;
@@ -540,8 +542,8 @@ namespace ecmascript {
         template <typename ScannerT>
         struct result
         {
-            typedef typename spirit::match_result<
-                ScannerT, spirit::nil_t>::type type;
+            typedef typename spirit::match_result<ScannerT, spirit::nil_t>::type
+                type;
         };
 
         template <typename ScannerT>
@@ -554,7 +556,7 @@ namespace ecmascript {
             typedef typename ScannerT::iteration_policy_t iteration_policy_t;
             scan.skip(scan);
             iterator_t const s(scan.first);
-            ptrdiff_t len
+            std::ptrdiff_t len
                 = parse_impl(
                     scan, 
                     static_cast<iteration_policy_t const * const>(0));
@@ -562,12 +564,12 @@ namespace ecmascript {
                 return scan.no_match();
             ES_ASSERT(len > 0);
             return scan.create_match(
-                size_t(len), result_t(), s, scan.first);
+                std::size_t(len), result_t(), s, scan.first);
         }
 
     private:
         template <typename ScannerT, typename IterationPolicyT>
-        ptrdiff_t parse_impl(
+        std::ptrdiff_t parse_impl(
             ScannerT const& scan,
             IterationPolicyT const * const
             ) const
@@ -583,7 +585,7 @@ namespace ecmascript {
         }
 
         template <typename ScannerT, typename IterationPolicyT>
-        ptrdiff_t parse_impl(
+        std::ptrdiff_t parse_impl(
             ScannerT const& scan,
             spirit::no_skipper_iteration_policy<IterationPolicyT> const * const
             ) const

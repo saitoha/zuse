@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
 
+
 #ifdef HAVE_CONFIG_H
 #   include "config.h"
 #endif
@@ -22,10 +23,16 @@
 #include "grammer.hpp"
 #include "activescript.hpp"
 
-#if defined(HAVE_READLINE)
+#define NO_READLINE
+
+#if defined(_MSC_VER)
+#   define NO_READLINE
+#endif
+
+#if !defined(NO_READLINE)
 #   include <readline/readline.h>
 #   include <readline/history.h>
-#endif // HAVE_READLINE
+#endif // NO_READLINE
 
 
 namespace ecmascript {
@@ -42,7 +49,7 @@ namespace ecmascript {
         iteratorT const end
         ) throw()
     {
-        typedef const_string_t string_t;
+        typedef std::wstring string_t;
         try {
             return global.eval(*new es_string<string_t>(begin, end));
         } catch (std::logic_error const& e) {
@@ -61,7 +68,7 @@ namespace ecmascript {
             fwprintf(stderr,
                      L"runtime error: an exception is thrown and not caught.\n"
                      L"the type of thrown object: %d\n%s\n",
-                     int(e.type__()), e.operator const_string_t const().c_str());
+                     int(e.type__()), e.operator const std::wstring().c_str());
         } catch (...)  {
             fprintf(stderr, "unknown error\n");
         }
@@ -80,9 +87,9 @@ namespace ecmascript {
     es_result interactive_mode<char>(IGlobal& global)
     {
         using namespace base_services;
-        typedef const_string_t string_t;
+        typedef std::basic_string<wchar_t> string_t;
         string_t input;
-#if !defined(HAVE_READLINE)
+#ifdef NO_READLINE
         while (!std::cin.eof())
         {
             wprintf(L">>> ");
@@ -97,9 +104,9 @@ namespace ecmascript {
             delete[] line_w;
             if (!line.empty())
                 continue;
-            ecmascript::es_const_string<wchar_t> result_value = es_run(
-                global, &*input.begin(), &*input.rbegin() + 1).operator const_string_t const();
-            string_t ws(result_value.begin(), result_value.end());
+            IPrimitive& result_value = es_run(
+                global, &*input.begin(), &*input.rbegin() + 1);
+            string_t ws = result_value.operator const_string_t const();
             char *mbstring = new char[ws.size() + 1];
             wcstombs(mbstring, ws.c_str(), ws.size());
             mbstring[ws.size()] = '\0';
@@ -114,21 +121,27 @@ namespace ecmascript {
             line = readline(">>> ");
             if (0 == line || 0 == strcmp(line, "quit"))
                 break;
+            printf("%s\n", line);
             add_history(line);
             free(line);
             size_t size = strlen(line);
+            printf("%d\n", size);
             wchar_t *line_w = new wchar_t[size + 1];
-            mbstate_t state;
+            mbstate_t state = { 0 };
             mbsinit(&state);
             mbstowcs(line_w, line, size);
             line_w[ size ] = L'\0';
+            wprintf(L"%s\n", line_w);
             input.append(line_w).append(L"\n");
             delete[] line_w;
             if (0 != size)
                 continue;
-            ecmascript::es_const_string<wchar_t> result_value = result_value = es_run(
-                global, &*input.begin(), &*input.rbegin() + 1).operator const_string_t const();
-            string_t ws(result_value.begin(), result_value.end());
+            printf("---------\n");
+            wprintf(L"%s\n", input.c_str());
+            printf("---------\n");
+            IPrimitive& result_value = es_run(
+                global, &*input.begin(), &*input.rbegin() + 1);
+            string_t ws = result_value.operator const_string_t const();
             char *mbstring = new char[ws.size() + 1];
             wcstombs(mbstring, ws.c_str(), ws.size());
             mbstring[ws.size()] = '\0';
@@ -144,7 +157,7 @@ namespace ecmascript {
             if (input.append(line).append(L"\n"), line.empty())
                 es_puts(es_run(global, &*input.begin(), &*input.rbegin() + 1)
                     .operator const_string_t const().c_str()), input.clear();
-#endif // !HAVE_READLINE
+#endif // NO_READLINE
         return es_success;
     } // interactive_mode<char>(IPrimitive& global)
 
@@ -156,7 +169,7 @@ namespace ecmascript {
     es_result execfile(IGlobal& global, char const *filename)
     {
         using namespace base_services;
-        typedef const_string_t string_t;
+        typedef std::wstring string_t;
         char fullpath[ES_MAX_PATH] = { 0 };
         if (!es_abspath(filename, fullpath, sizeof(fullpath) / sizeof(char)))
             return fprintf(stderr, "abspath failed: %s\n", filename), es_fail;
@@ -217,7 +230,8 @@ namespace {
     //
     //  es_init_module
     // 
-    inline void es_init_module(
+    inline void 
+    es_init_module(
         ecmascript::IGlobal& global, 
         ecmascript::es_init_map& map
         ) throw()
@@ -236,16 +250,13 @@ namespace {
 
 #elif defined(_MSC_VER)
         std::locale::global(std::locale("japanese"));
-#elif defined(__APPLE__)
-//        std::locale::global(std::locale("C"));
-        setlocale(LC_ALL, "ja_JP.UTF-8");
+#elif defined(__APPLLE__)
+        //    std::locale::global(std::locale("C");
 #else
-//        setlocale(LC_ALL, "ja_JP.UTF-8");
-//        setlocale(LC_CTYPE, "");
-        using namespace std;
-        locale::global(locale(
-            locale(""), &use_facet<numpunct<char> >(locale::classic())));
-        setlocale(LC_ALL, "");
+//    std::locale::global(std::locale(""));
+//    std::locale::global(std::locale("C"));
+//    std::locale::global(std::locale("C"));
+//    std::locale::global(std::locale("ja_JP.UTF-8"));
 #endif // defined(__CYGWIN__) || defined(__MINGW32__)
         return true;
     }
@@ -297,7 +308,7 @@ extern "C" int es_main(int argc, char **argv)
     using namespace ecmascript;
     if (true != es_set_locale())
         return -1;
-    typedef const_string_t string_t;
+    typedef std::wstring string_t;
     IArray& array_of_argv = *new es_array<string_t>;
     array_of_argv.addref__();
     array_of_argv.addref__();
@@ -340,7 +351,7 @@ extern "C" int es_main(int argc, char **argv)
         size_t const buffer_size = 2 << 4;
         wchar_t buffer[buffer_size + 1];
         buffer[buffer_size] = 0;
-        const_string_t source;
+        std::wstring source;
         while (std::wcin.read(buffer, buffer_size).gcount())
             source += buffer;
         wchar_t *first = &*source.begin();
@@ -361,13 +372,13 @@ extern "C" int es_main(int argc, char **argv)
             "information.\n\n");
         global.put__(L"copyright",
             *new es_string<string_t>(
-                L"Copyright (c) 2008 System Design Associates Inc.\n"));
+                L"Copyright (c) 2009 System Design Associates Inc.\n"));
         global.put__(L"credits",
             *new es_string<string_t>(
                 L"credits\n"
                 PACKAGE_NAME L" is an implementation of ECMA-262 (ECMAScript "
                 L"language).\n"
-                L"Thanks for Brendan Eich, the inventor of JavaScript "
+                L"Thanks for Brendan Eich, creator of the JavaScript "
                 L"programming language."));
         global.put__(L"license",
             *new es_string<string_t>(
@@ -484,8 +495,6 @@ namespace {
             {
                 using namespace ecmascript;
                 ES_TRACE ("IActiveScript::SetScriptSite");
-                if (NULL == pass)
-                    return E_INVALIDARG;
                 m_ActiveScriptSite = pass;
                 m_p_scriptsite_object
                     = new es_scriptsite_object(m_ActiveScriptSite);
@@ -495,7 +504,7 @@ namespace {
                 IPrimitive& window 
                     = m_p_scriptsite_object->get__(L"window").get_value__();
                 m_p_global_scope
-                    = &es_global<const_string_t, es_parser>::create_instance(window);
+                    = &es_global<std::wstring, es_parser>::create_instance(window);
                 es_initialize_modules(*m_p_global_scope);
                 return S_OK;
             }
@@ -635,7 +644,7 @@ namespace {
                 return E_POINTER;
             if (0 == pstrItemName || 0 == pstrEventName)
                 return E_INVALIDARG;
-            const_string_t code = pstrItemName;
+            std::wstring code = pstrItemName;
             try {
                 if (pstrSubItemName)
                     code = code + L"." + pstrSubItemName;
@@ -645,7 +654,7 @@ namespace {
                 return E_UNEXPECTED;
             }
             pthis->m_p_global_scope->eval(
-                *new ecmascript::es_string<const_string_t>(
+                *new ecmascript::es_string<std::wstring>(
                     &*code.begin(), &*code.rbegin() + 1));
             return S_OK;
         }
@@ -670,7 +679,7 @@ namespace {
             if (FAILED(hr = TrimComment(&it_start, &it_end)))
                 return hr;
             pthis->m_p_global_scope->eval(
-                *new ecmascript::es_string<const_string_t>(it_start, it_end));
+                *new ecmascript::es_string<std::wstring>(it_start, it_end));
             pthis->m_ActiveScriptSite->OnLeaveScript();
 		    pthis->m_ActiveScriptSite->OnStateChange(
 		        pthis->m_script_state = SCRIPTSTATE_INITIALIZED);

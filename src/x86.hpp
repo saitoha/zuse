@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,14 +13,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * ***** END LICENSE BLOCK ***** */
-
-
-/**
+ * ***** END LICENSE BLOCK ***** 
+ *
  * $Revision: 8 $
  * $Author: user $
- * $Date: 2011-12-18 23:05:31 +0900 (日, 18 12 2011) $
- * $HeadURL: svn+ssh://zuse.jp/svn/zuse/trunk/src/x86.hpp $
+ * $Date: 2010-06-05 15:49:50 +0900 (土, 05  6 2010) $
+ * $HeadURL: svn+ssh://zuse.jp/svn/zuse/tags/zuse-0.1.4/src/x86.hpp $
  */
 
 #if ES_TEST_JIT

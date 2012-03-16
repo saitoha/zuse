@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 #include<deque>
@@ -134,7 +133,7 @@ namespace ecmascript {
 
         IPrimitive ** begin__()
         {
-            ES_ABORT("not implemented: es_array::begin__");
+            throw std::runtime_error("not implemented: es_array::begin__");
         }
 
 // IEnumProperty implemetation
@@ -208,13 +207,25 @@ namespace ecmascript {
 
         operator const_string_t const() const
         {
-            const_string_t ws_;
+            string_t ws_;
             typename dequeue_t::const_iterator it = internal_value_.begin();
             if (it == internal_value_.end())
                 return ws_;
-            ws_ = ws_ + (*it).operator const_string_t const();
+            ws_ = ws_ + (*it).operator string_t const();
             while (++ it != internal_value_.end())
-                ws_ = ws_ + L"," + (*it).operator const_string_t const();
+                ws_ = ws_ + L',' + (*it).operator string_t const();
+            return ws_;
+        }
+
+        operator string_t const() const
+        {
+            string_t ws_;
+            typename dequeue_t::const_iterator it = internal_value_.begin();
+            if (it == internal_value_.end())
+                return ws_;
+            ws_ += (*it).operator string_t const();
+            while (++ it != internal_value_.end())
+                ws_ += L',' + (*it).operator string_t const();
             return ws_;
         }
 

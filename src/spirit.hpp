@@ -6,19 +6,6 @@
 
 namespace ecmascript { namespace spirit {
 
-    typedef ptrdiff_t ptrdiff_t;
-    typedef size_t size_t;
-
-    template <typename T>
-    struct iterator_traits;
-
-    template <typename T>
-    struct iterator_traits<T*>
-    {
-        typedef T value_type; 
-        typedef T& reference; 
-    };
-
     template <typename T>
     struct call_traits
     {
@@ -28,18 +15,9 @@ namespace ecmascript { namespace spirit {
        typedef T const& param_type;
     };
 
-    template <typename T>
-    void swap(T rhs, T lhs);
-
-    template <typename T>
-    inline void swap(T *rhs, T *lhs)
+    struct nil_t
     {
-        T const *tmp = rhs;
-        lhs = rhs;
-        rhs = tmp;
-    }
-
-    struct nil_t {};
+    };
 
     template <typename T = nil_t>
     struct match
@@ -47,19 +25,36 @@ namespace ecmascript { namespace spirit {
         typedef T optional_type;
         typedef T attr_t;
 
-        match(size_t length, T val_): len(length), val(val_) {}
+        match(std::size_t length, T val_)
+        : len(length)
+        , val(val_)
+        {
+        }
 
-        ptrdiff_t length() const { return len; }
+        std::ptrdiff_t length() const
+        {
+            return len;
+        }
 
-        T value() const { return val; }
+        T value() const
+        {
+            return val;
+        }
 
         template <typename T2>
-        match(match<T2> const& other): len(other.length()), val() {}
+        match(match<T2> const& other)
+        : len(other.length())
+        , val()
+        {
+        }
 
-        operator bool() const { return len >= 0; }
+        operator bool() const
+        {
+            return len >= 0;
+        }
 
     private:
-        ptrdiff_t len;
+        std::ptrdiff_t len;
         T val;
     };
 
@@ -69,24 +64,46 @@ namespace ecmascript { namespace spirit {
         typedef nil_t attr_t;
         typedef nil_t return_t;
 
-        match(): len(-1) {}
+        match()
+        : len(-1)
+        {
+        }
 
-        match(size_t length, nil_t): len(length) {}
+        match(std::size_t length, nil_t)
+        : len(length)
+        {
+        }
 
-        ptrdiff_t length() const { return len; }
+        std::ptrdiff_t length() const
+        {
+            return len;
+        }
 
-        nil_t value() const { return nil_t(); }
+        nil_t value() const
+        {
+            return nil_t();
+        }
 
         template <typename T>
-        match(match<T> const& other): len(other.length()) {}
+        match(match<T> const& other)
+        : len(other.length())
+        {
+        }
 
         template <typename T>
-        void concat(match<T> const& other) { len += other.length(); }
+        void
+        concat(match<T> const& other)
+        {
+            len += other.length();
+        }
 
-        operator bool() const { return len >= 0; }
+        operator bool() const
+        {
+            return len >= 0;
+        }
 
     private:
-        ptrdiff_t len;
+        std::ptrdiff_t len;
     };
 
     template <typename MatchPolicyT, typename T>
@@ -115,19 +132,26 @@ namespace ecmascript { namespace spirit {
         }
     };
 
-    template <typename IteratorT, typename PoliciesT>
+    template <
+        typename IteratorT,
+        typename PoliciesT>
     struct scanner
     : public PoliciesT
     {
         typedef IteratorT iterator_t;
         typedef PoliciesT policies_t;
-        typedef typename iterator_traits<IteratorT>::value_type value_t;
-        typedef typename iterator_traits<IteratorT>::reference ref_t;
+
+        typedef typename std::iterator_traits<IteratorT>::value_type value_t;
+        typedef typename std::iterator_traits<IteratorT>::reference ref_t;
         typedef typename call_traits<IteratorT>::param_type iter_param_t;
 
         scanner(
-            IteratorT& first_, iter_param_t last_, PoliciesT const& policies)
-        : PoliciesT(policies), first(first_), last(last_)
+            IteratorT& first_,
+            iter_param_t last_,
+            PoliciesT const& policies)
+        : PoliciesT(policies)
+        , first(first_)
+        , last(last_)
         {
         }
 
@@ -144,13 +168,12 @@ namespace ecmascript { namespace spirit {
 
         value_t operator*() const
         {
-            typedef typename PoliciesT::iteration_policy_t 
-                iteration_policy_type;
-            return iteration_policy_type::filter(
-                iteration_policy_type::get(*this));
+            typedef typename PoliciesT::iteration_policy_t iteration_policy_type;
+            return iteration_policy_type::filter(iteration_policy_type::get(*this));
         }
 
-        scanner const& operator++() const
+        scanner const&
+        operator++() const
         {
             PoliciesT::iteration_policy_t::advance(*this);
             return *this;
@@ -167,7 +190,8 @@ namespace ecmascript { namespace spirit {
         IteratorT const last;
 
     private:
-        scanner& operator=(scanner const& other);
+        scanner&
+        operator=(scanner const& other);
     };
 
     template <typename ParserT, typename ScannerT>
@@ -185,9 +209,17 @@ namespace ecmascript { namespace spirit {
         typedef typename call_traits<S>::const_reference return_t;
         typedef typename S::embed_t subject_embed_t;
 
-        explicit unary(param_t subj_): base_t(), subj(subj_) {}
+        unary(param_t subj_)
+        : base_t()
+        , subj(subj_)
+        {
+        }
 
-        return_t subject() const { return subj; }
+        return_t
+        subject() const
+        {
+            return subj;
+        }
 
     private:
         subject_embed_t subj;
@@ -205,14 +237,22 @@ namespace ecmascript { namespace spirit {
         typedef typename A::embed_t left_embed_t;
         typedef typename B::embed_t right_embed_t;
 
-        explicit binary(left_param_t a, right_param_t b)
-        : base_t(), first_(a), second_(b)
+        binary(left_param_t a, right_param_t b)
+        : base_t()
+        , first_(a)
+        , second_(b)
         {
         }
 
-        left_return_t left() const { return first_; }
+        left_return_t left() const
+        {
+            return first_;
+        }
 
-        right_return_t right() const { return second_; }
+        right_return_t right() const
+        {
+            return second_;
+        }
 
     private:
         left_embed_t first_;
@@ -236,8 +276,9 @@ namespace ecmascript { namespace spirit {
                 typedef typename parser_result<ParserT, ScannerT>::type type;
             };
 
-            explicit action(ParserT const& p, ActionT const& a)
-            : base_t(p), actor(a)
+            action(ParserT const& p, ActionT const& a)
+            : base_t(p)
+            , actor(a)
             {
             }
 
@@ -246,8 +287,7 @@ namespace ecmascript { namespace spirit {
             parse(ScannerT const& scan) const
             {
                 typedef typename ScannerT::iterator_t iterator_t;
-                typedef typename parser_result<self_t, ScannerT>::type 
-                    result_t;
+                typedef typename parser_result<self_t, ScannerT>::type result_t;
                 scan.at_end();
                 iterator_t save = scan.first;
                 result_t hit = this->subject().parse(scan);
@@ -289,17 +329,22 @@ namespace ecmascript { namespace spirit {
     {
         typedef BaseT base_t;
 
-        skipper_iteration_policy(): BaseT() {}
+        skipper_iteration_policy()
+        : BaseT()
+        {
+        }
 
         template <typename ScannerT>
-        void advance(ScannerT const& scan) const
+        void
+        advance(ScannerT const& scan) const
         {
             BaseT::advance(scan);
             scan.skip(scan);
         }
 
         template <typename ScannerT>
-        bool at_end(ScannerT const& scan) const
+        bool
+        at_end(ScannerT const& scan) const
         {
             scan.skip(scan);
             return BaseT::at_end(scan);
@@ -313,10 +358,16 @@ namespace ecmascript { namespace spirit {
         typedef BaseT base_t;
 
         template <typename PolicyT>
-        no_skipper_iteration_policy(PolicyT const& other): BaseT(other) {}
+        no_skipper_iteration_policy(PolicyT const& other)
+        : BaseT(other)
+        {
+        }
 
         template <typename ScannerT>
-        void skip(ScannerT const& /*scan*/) const {}
+        void
+        skip(ScannerT const& /*scan*/) const
+        {
+        }
     };
 
     template <typename ParserT, typename BaseT>
@@ -326,12 +377,14 @@ namespace ecmascript { namespace spirit {
         typedef skipper_iteration_policy<BaseT> base_t;
 
         skip_parser_iteration_policy(ParserT const& skip_parser)
-        : base_t(), subject(skip_parser)
+        : base_t()
+        , subject(skip_parser)
         {
         }
 
         template <typename ScannerT>
-        void skip(ScannerT const& scan) const
+        void
+        skip(ScannerT const& scan) const
         {
             typedef typename ScannerT::iterator_t iterator_t;
             typedef scanner_policies<
@@ -349,7 +402,11 @@ namespace ecmascript { namespace spirit {
             scan.first = save;
         }
 
-        ParserT const& skipper() const { return subject; }
+        ParserT const&
+        skipper() const
+        {
+            return subject;
+        }
 
     private:
         ParserT const& subject;
@@ -376,31 +433,47 @@ namespace ecmascript { namespace spirit {
     struct chlit
     : public char_parser<chlit<CharT> >
     {
-        chlit(CharT ch_): ch(ch_) {}
+        chlit(CharT ch_)
+        : ch(ch_)
+        {
+        }
 
-        template <typename T> 
-        bool test(T ch_) const { return ch_ == ch; }
+        template <typename T>
+        bool test(T ch_) const
+        {
+            return ch_ == ch;
+        }
 
     private:
-        CharT ch;
+        CharT   ch;
     };
 
     template <typename IteratorT>
-    inline IteratorT get_last(IteratorT first)
+    inline IteratorT
+    get_last(IteratorT first)
     {
-        while (*first) 
-            ++first;
+        while (*first)
+            first++;
         return first;
     }
 
     template <typename IteratorT = char const*>
-    struct chseq: public parser<chseq<IteratorT> >
+    struct chseq
+    : public parser<chseq<IteratorT> >
     {
         typedef chseq<IteratorT> self_t;
 
-        chseq(IteratorT first_): first(first_), last(get_last(first_)) {}
+        chseq(IteratorT first_)
+        : first(first_)
+        , last(get_last(first_))
+        {
+        }
 
-        chseq(IteratorT first_, IteratorT last_): first(first_), last(last_) {}
+        chseq(IteratorT first_, IteratorT last_)
+        : first(first_)
+        , last(last_)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -418,11 +491,13 @@ namespace ecmascript { namespace spirit {
         }
 
     private:
-        IteratorT first, last;
+        IteratorT first;
+        IteratorT last;
     };
 
     template <typename RT, typename ST, typename ScannerT, typename BaseT>
-    inline RT contiguous_parser_parse(
+    inline RT
+    contiguous_parser_parse(
         ST const& s,
         ScannerT const& scan,
         skipper_iteration_policy<BaseT> const&);
@@ -433,9 +508,15 @@ namespace ecmascript { namespace spirit {
     {
         typedef strlit<IteratorT> self_t;
 
-        strlit(IteratorT first): seq(first) {}
+        strlit(IteratorT first)
+        : seq(first)
+        {
+        }
 
-        strlit(IteratorT first, IteratorT last): seq(first, last) {}
+        strlit(IteratorT first, IteratorT last)
+        : seq(first, last)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -473,10 +554,13 @@ namespace ecmascript { namespace spirit {
     struct difference
     : public binary<A, B, parser<difference<A, B> > >
     {
-        typedef difference<A, B> self_t;
-        typedef binary<A, B, parser<self_t> > base_t;
+        typedef difference<A, B>                self_t;
+        typedef binary<A, B, parser<self_t> >   base_t;
 
-        difference(A const& a, B const& b): base_t(a, b) {}
+        difference(A const& a, B const& b)
+        : base_t(a, b)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -487,7 +571,7 @@ namespace ecmascript { namespace spirit {
             result_t hl = this->left().parse(scan);
             if (!hl)
                 return scan.no_match();
-            swap(save, scan.first);
+            std::swap(save, scan.first);
             result_t hr = this->right().parse(scan);
             if (!hr || (hr.length() < hl.length()))
                 return scan.first = save, hl;
@@ -529,10 +613,13 @@ namespace ecmascript { namespace spirit {
     struct sequence
     : public binary<A, B, parser<sequence<A, B> > >
     {
-        typedef sequence<A, B> self_t;
-        typedef binary<A, B, parser<self_t> > base_t;
+        typedef sequence<A, B>                  self_t;
+        typedef binary<A, B, parser<self_t> >   base_t;
 
-        sequence(A const& a, B const& b): base_t(a, b) {}
+        sequence(A const& a, B const& b)
+        : base_t(a, b)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -604,7 +691,10 @@ namespace ecmascript { namespace spirit {
         typedef alternative<A, B> self_t;
         typedef binary<A, B, parser<self_t> > base_t;
 
-        alternative(A const& a, B const& b): base_t(a, b) {}
+        alternative(A const& a, B const& b)
+        : base_t(a, b)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -663,7 +753,10 @@ namespace ecmascript { namespace spirit {
         typedef kleene_star<S> self_t;
         typedef unary<S, parser<self_t> > base_t;
 
-        kleene_star(S const& a): base_t(a) {}
+        kleene_star(S const& a)
+        : base_t(a)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -687,7 +780,8 @@ namespace ecmascript { namespace spirit {
     };
 
     template <typename S>
-    inline kleene_star<S> operator*(parser<S> const& a)
+    inline kleene_star<S>
+    operator*(parser<S> const& a)
     {
         return kleene_star<S>(a.derived());
     }
@@ -698,10 +792,13 @@ namespace ecmascript { namespace spirit {
     struct optional
     : public unary<S, parser<optional<S> > >
     {
-        typedef optional<S> self_t;
-        typedef unary<S, parser<self_t> > base_t;
+        typedef optional<S>                 self_t;
+        typedef unary<S, parser<self_t> >   base_t;
 
-        optional(S const& a): base_t(a) {}
+        optional(S const& a)
+        : base_t(a)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -758,15 +855,17 @@ namespace ecmascript { namespace spirit {
         typedef contiguous<ParserT> self_t;
         typedef unary<ParserT, parser<self_t> > base_t;
 
-        contiguous(ParserT const& p): base_t(p) {}
+        contiguous(ParserT const& p) throw()
+        : base_t(p)
+        {
+        }
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
         parse(ScannerT const& scan) const
         {
             typedef typename parser_result<self_t, ScannerT>::type result_t;
-            return contiguous_parser_parse<result_t>(
-                    this->subject(), scan, scan);
+            return contiguous_parser_parse<result_t>(this->subject(), scan, scan);
         }
     };
 
@@ -774,7 +873,7 @@ namespace ecmascript { namespace spirit {
     {
         template <typename ParserT>
         contiguous<ParserT>
-        operator[](parser<ParserT> const& subject) const 
+        operator[](parser<ParserT> const& subject) const throw()
         {
             return contiguous<ParserT>(subject.derived());
         }
@@ -789,9 +888,13 @@ namespace ecmascript { namespace spirit {
         template <typename ScannerT>
         struct es_abstract_parser
         {
-            es_abstract_parser() {}
+            es_abstract_parser() throw()
+            {
+            }
 
-            virtual ~es_abstract_parser() {}
+            virtual ~es_abstract_parser() throw()
+            {
+            }
 
             virtual typename match_result<ScannerT, nil_t>::type
                 do_parse_virtual(ScannerT const& scan) const = 0;
@@ -801,12 +904,17 @@ namespace ecmascript { namespace spirit {
         struct es_concrete_parser
         : es_abstract_parser<ScannerT>
         {
-            es_concrete_parser(ParserT const& p): p(p) {}
+            es_concrete_parser(ParserT const& p) throw()
+            : p(p)
+            {
+            }
 
-            virtual ~es_concrete_parser() {}
+            virtual ~es_concrete_parser() throw()
+            {
+            }
 
             virtual typename match_result<ScannerT, nil_t>::type
-            do_parse_virtual(ScannerT const& scan) const 
+            do_parse_virtual(ScannerT const& scan) const throw()
             {
                 return p.parse(scan);
             }
@@ -817,19 +925,25 @@ namespace ecmascript { namespace spirit {
         typedef es_rule<scannerT> self_t;
         typedef self_t const& embed_t;
 
-        es_rule(): ptr(0) {}
+        es_rule() throw()
+        : ptr(0)
+        {
+        }
 
-        ~es_rule() { delete ptr; }
+        ~es_rule() throw()
+        {
+            delete ptr;
+        }
 
         template <typename ParserT>
-        es_rule& operator=(ParserT const& p)
+        es_rule& operator=(ParserT const& p) throw()
         {
             return ptr = new es_concrete_parser<ParserT, scannerT>(p), *this;
         }
         
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
-        parse(ScannerT const& scan) const
+        parse(ScannerT const& scan) const throw()
         {
             return ptr->do_parse_virtual(scan);
         }
@@ -848,19 +962,27 @@ namespace ecmascript {
     {
         template <typename ScannerT>
         void
-        advance(ScannerT const& scan) const { ++scan.first; }
+        advance(ScannerT const& scan) const
+        {
+            ++scan.first;
+        }
 
         template <typename ScannerT>
-        bool at_end(ScannerT const& scan) const
+        bool
+        at_end(ScannerT const& scan) const
         {
             return scan.first == scan.last;
         }
 
         template <typename T>
-        T filter(T ch) const { return ch; }
+        T filter(T ch) const
+        {
+            return ch;
+        }
 
         template <typename ScannerT>
-        typename ScannerT::ref_t get(ScannerT const& scan) const
+        typename ScannerT::ref_t
+        get(ScannerT const& scan) const
         {
             return *scan.first;
         }
@@ -884,11 +1006,12 @@ namespace ecmascript {
         }
 
         template <typename AttrT, typename IteratorT>
-        spirit::match<AttrT> const create_match(
-            size_t length,
-            AttrT const& val,
-            IteratorT const& /*first*/,
-            IteratorT const& /*last*/
+        spirit::match<AttrT> const
+        create_match(
+            std::size_t         length,
+            AttrT const&        val,
+            IteratorT const&    /*first*/,
+            IteratorT const&    /*last*/
             ) const
         {
             return spirit::match<AttrT>(length, val);
@@ -900,7 +1023,8 @@ namespace ecmascript {
     struct attributed_action_policy
     {
         template <typename ActorT, typename IteratorT>
-        static void call(
+        static void
+        call(
             ActorT const& actor,
             AttrT& val,
             IteratorT const&,
@@ -932,10 +1056,13 @@ namespace ecmascript {
         typedef es_parsed_element<wchar_t const*> value_type;
         typedef es_parse_stack<value_type> stack_type;
 
-        action_policy() {}
+        action_policy()
+        {
+        }
 
         template <typename ActorT, typename AttrT, typename IteratorT>
-        void do_action(
+        void
+        do_action(
             ActorT const& actor,
             AttrT& val,
             IteratorT const& first,

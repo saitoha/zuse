@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 #ifdef _MSC_VER
 
@@ -32,14 +31,18 @@ namespace ecmascript {
     //
     struct es_scriptsite_object
     : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<IPrimitive, const_string_t> >
+        base_classes::es_object_impl<IPrimitive, std::wstring> >
     {
+        typedef std::basic_string<wchar_t> string_t;
         typedef base_classes::es_object_impl<IPrimitive, string_t> object_t;
 
         explicit es_scriptsite_object(IActiveScriptSite *pActiveScriptSite)
         : m_pActiveScriptSite(pActiveScriptSite)
         {
             ES_ASSERT(0 != m_pActiveScriptSite);
+            if (NULL == pActiveScriptSite)
+                throw std::runtime_error(
+                    "es_scriptsite_object::es_scriptsite_object");
             m_pActiveScriptSite->AddRef();
         }
 

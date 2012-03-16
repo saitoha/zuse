@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-
 namespace ecmascript {
 
     //////////////////////////////////////////////////////////////////////////
@@ -28,7 +27,6 @@ namespace ecmascript {
     : public base_classes::es_object_impl<INativeError, stringT>
     {
         typedef stringT string_t;
-        typedef es_native_error<string_t> self_t;
 
         static IFunction& static_get_constructor()
         {
@@ -65,7 +63,7 @@ namespace ecmascript {
         {
         }
 
-        es_native_error(const_string_t const& message)
+        es_native_error(stringT const& message)
         : message_(*new es_string<string_t>(message))
         , name_(*new es_string<string_t>(L"Error"))
         {
@@ -106,78 +104,6 @@ namespace ecmascript {
         : message_(*new es_string<string_t>())
         , name_(*new es_string<string_t>(L"Error"))
         {
-        }
-
-        operator IUndefined& ()
-        {
-            union {
-                IUndefined *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
-        }
-
-        operator IFunction& ()
-        {
-            union {
-                IFunction *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
-        }
-
-        operator INumber& ()
-        {
-            union {
-                INumber *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
-        }
-
-        operator IBoolean& ()
-        {
-            union {
-                IBoolean *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
-        }
-
-        operator IString& ()
-        {
-            union {
-                IString *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
-        }
-
-        operator IPrimitive& ()
-        {
-            union {
-                IPrimitive *p_dest;
-                self_t *p_src;
-                ptrdiff_t value;
-            } box;
-            box.p_src = this;
-            ++box.value;
-            return *box.p_dest;
         }
 
     protected:
@@ -277,89 +203,6 @@ namespace ecmascript {
 
     //////////////////////////////////////////////////////////////////////////
     //
-    // @struct es_reference_error
-    //
-    template <typename stringT>
-    struct es_reference_error
-    : es_native_error<stringT>
-    {
-        typedef stringT string_t;
-        typedef es_native_error<stringT> base_t;
-        typedef es_reference_error<string_t> self_t;
-
-        explicit es_reference_error(IPrimitive& message)
-        : base_t(message)
-        {
-        }
-
-        explicit es_reference_error(const_string_t const message)
-        : base_t(message)
-        {
-        }
-
-        const_string_t const class__() const
-        {
-            return L"ReferenceError";
-        }
-
-        es_reference_error(self_t const& rhs)
-        : base_t(rhs)
-        {
-        }
-
-    protected:
-        self_t& operator=(self_t const& rhs)
-        {
-            base_t::message_ = rhs.message_;
-            base_t::name_ = rhs.name_;
-            return *this;
-        }
-    };
-
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // @struct es_eval_error
-    //
-    template <typename stringT>
-    struct es_eval_error
-    : es_native_error<stringT>
-    {
-        typedef stringT string_t;
-        typedef es_native_error<stringT> base_t;
-        typedef es_eval_error<string_t> self_t;
-
-        explicit es_eval_error(IPrimitive& message)
-        : base_t(message)
-        {
-        }
-
-        explicit es_eval_error(const_string_t const message)
-        : base_t(message)
-        {
-        }
-
-        const_string_t const class__() const
-        {
-            return L"EvalError";
-        }
-
-        es_eval_error(self_t const& rhs)
-        : base_t(rhs)
-        {
-        }
-
-    protected:
-        self_t& operator=(self_t const& rhs)
-        {
-            base_t::message_ = rhs.message_;
-            base_t::name_ = rhs.name_;
-            return *this;
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////////
-    //
     // @struct es_syntax_error
     //
     template <typename stringT>
@@ -388,47 +231,6 @@ namespace ecmascript {
         const_string_t const class__() const
         {
             return L"RangeError";
-        }
-
-    protected:
-        self_t& operator=(self_t const& rhs)
-        {
-            base_t::message_ = rhs.message_;
-            base_t::name_ = rhs.name_;
-            return *this;
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // @struct es_uri_error
-    //
-    template <typename stringT>
-    struct es_uri_error
-    : es_native_error<stringT>
-    {
-        typedef stringT string_t;
-        typedef es_native_error<stringT> base_t;
-        typedef es_uri_error<string_t> self_t;
-
-        explicit es_uri_error(IPrimitive& message)
-        : base_t(message)
-        {
-        }
-
-        explicit es_uri_error(const_string_t const message)
-        : base_t(message)
-        {
-        }
-
-        const_string_t const class__() const
-        {
-            return L"URIError";
-        }
-
-        es_uri_error(self_t const& rhs)
-        : base_t(rhs)
-        {
         }
 
     protected:

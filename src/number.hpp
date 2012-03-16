@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 namespace ecmascript {
@@ -156,7 +155,7 @@ namespace ecmascript {
             if (__builtin_expect(
                 base_services::es_lexical_cast(value, buffer), true))
                 return *new es_string<stringT>(buffer);
-            return *new es_native_error<stringT>(L"to_fixed_impl");
+            throw *new es_native_error<stringT>(L"to_fixed_impl");
         }
 
         //////////////////////////////////////////////////////////////////////
@@ -175,7 +174,7 @@ namespace ecmascript {
                 return *new es_string<stringT>(
                     0 > value ? L"Infinity": L"-Infinity");
             if (0 > digits || 20 < digits)
-                return *new es_range_error<stringT>(L"es_number::toFixed");
+                throw *new es_range_error<stringT>(L"es_number::toFixed");
             bool negate = false;
             if (0 > value)
                 negate = true, value = - value;
@@ -205,7 +204,7 @@ namespace ecmascript {
             if (__builtin_expect(
                 base_services::es_lexical_cast(value, buffer), true))
                 return *new es_string<stringT>(buffer);
-            return *new es_native_error<stringT>(L"to_fixed_impl");
+            throw *new es_native_error<stringT>(L"to_fixed_impl");
         }
 
         //////////////////////////////////////////////////////////////////////
@@ -382,7 +381,7 @@ namespace ecmascript {
                 return *new es_string<string_t>(
                     operator const_string_t const());
             if (36 < radix_value || 2 > radix_value)
-                return *new es_native_error<string_t>(L"es_umber::toString");
+                throw *new es_native_error<string_t>(L"es_umber::toString");
             return es_double_to_float_string<string_t>(
                 operator double(), radix_value);
         }
@@ -397,7 +396,7 @@ namespace ecmascript {
         INumber const& __stdcall valueOf() const
         {
             if (VT::Number != (*this).type__())
-                return *new es_type_error<string_t>(L"es_number::valueOf");
+                throw *new es_type_error<string_t>(L"es_number::valueOf");
             return *new es_number<string_t>(operator double());
         }
 
@@ -419,7 +418,7 @@ namespace ecmascript {
                 return *new es_string<stringT>(
                     0 > value ? L"Infinity": L"-Infinity");
             if (0 > digits || 20 < digits)
-                return *new es_range_error<string_t>(L"es_number::toFixed");
+                throw *new es_range_error<string_t>(L"es_number::toFixed");
             wchar_t buffer[2 << 8];
             ecmascript::int32_t e_f = ecmascript::int32_t(log10(value));
             double n = base_services::es_floor(value * pow(10., e_f) + .5);
@@ -466,13 +465,13 @@ namespace ecmascript {
 // postfix operators
         IPrimitive& __stdcall postfix_inc__()
         {
-            return *new es_native_error<string_t>(
+            throw *new es_native_error<string_t>(
                 L"not implemented: es_number::postfix_inc__");
         }
 
         IPrimitive& __stdcall postfix_dec__()
         {
-            return *new es_native_error<string_t>(
+            throw *new es_native_error<string_t>(
                 L"not implemented: es_number::postfix_dec__");
         }
 // unary operations
@@ -484,13 +483,13 @@ namespace ecmascript {
 
         IPrimitive& __stdcall prefix_inc__()
         {
-            return *new es_native_error<string_t>(
+            throw *new es_native_error<string_t>(
                 L"not implemented: es_number::prefix_inc__");
         }
 
         IPrimitive& __stdcall prefix_dec__()
         {
-            return *new es_native_error<string_t>(
+            throw *new es_native_error<string_t>(
                 L"not implemented: es_number::prefix_dec__");
         }
 
@@ -539,7 +538,7 @@ namespace ecmascript {
             if (d_lhs == 0 || base_services::es_isinf(d_rhs))
                 return *new es_number<stringT>(d_lhs);
             return *new es_number<string_t>(
-                d_lhs - base_services::es_floor(d_lhs / d_rhs) * d_rhs);
+                d_lhs - std::floor(d_lhs / d_rhs) * d_rhs);
         }
 
 // additive operators
@@ -596,8 +595,8 @@ namespace ecmascript {
                     return es_boolean<string_t>::create_instance(
                         internal_value_ == rhs.operator double());
                 case VT::Object:
-                    return *new es_native_error<string_t>(
-                        L"not implemented: es_number::eq__");
+                    throw std::runtime_error(
+                        "not implemented: es_number::eq__");
                 default:
                     return es_boolean<string_t>::create_instance(false);
             }
@@ -622,7 +621,15 @@ namespace ecmascript {
             wchar_t buffer[1 << 8];
             if (base_services::es_lexical_cast(internal_value_, buffer))
                 return buffer;
-            ES_ABORT("const_string_t const() const");
+            throw std::runtime_error("const_string_t const() const");
+        }
+
+        operator string_t const() const
+        {
+            wchar_t buffer[1 << 8];
+            if (base_services::es_lexical_cast(internal_value_, buffer))
+                return buffer;
+            throw std::runtime_error("operator string_t const() const");
         }
 
         operator double() const

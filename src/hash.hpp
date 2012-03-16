@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 namespace ecmascript {
@@ -54,28 +53,16 @@ struct map
     struct iterator
     {
         explicit iterator(): p_value_((value_type *)-1) {}
-
         explicit iterator(value_type * p_value): p_value_(p_value) {}
-
         value_type * operator ->() const { return p_value_; }
-
-        iterator operator =(value_type * p_value) { return p_value_ = p_value; } 
-
+        iterator operator =(value_type * p_value)
+        { return p_value_ = p_value; } 
         bool operator ==(iterator const& other) const 
-        { 
-            return p_value_ == other.p_value_; 
-        } 
-
+        { return p_value_ == other.p_value_; } 
         bool operator !=(iterator const& other) const
-        { 
-            return p_value_ != other.p_value_; 
-        } 
-
+        { return p_value_ != other.p_value_; } 
         iterator operator ++() const
-        { 
-            return iterator(p_value_ = p_value_->prev_); 
-        } 
-
+        { return iterator(p_value_ = p_value_->prev_); } 
         iterator operator ++(int) 
         { 
             iterator result(p_value_); 
@@ -120,7 +107,7 @@ private:
         if (0 == p->next_)
             return current_ = p->next_ = new value_type(current_, key);
         p = p->next_;
-//        printf("collision detected.\n");
+        printf("collision detected.\n");
         goto loop;
     }
 

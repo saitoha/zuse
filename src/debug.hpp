@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 namespace ecmascript {
 
@@ -36,8 +35,7 @@ namespace ecmascript {
         virtual IUndefined& __stdcall beep() const = 0;
         virtual IUndefined& __stdcall print(IPrimitive const&) const = 0;
         virtual IString& __stdcall readtextfile(IPrimitive const&) const = 0;
-        virtual IUndefined& __stdcall 
-            test(IPrimitive const&, IPrimitive const&) const = 0;
+        virtual IUndefined& __stdcall test(IPrimitive const&, IPrimitive const&) const = 0;
         virtual IString& __stdcall inspect(IPrimitive&) const = 0;
         virtual IUndefined& __stdcall red() const = 0;
         virtual IUndefined& __stdcall green() const = 0;
@@ -70,15 +68,23 @@ namespace ecmascript {
     //  @brief IDebug implementaion
     //
     struct es_debug
-    : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<IDebug, const_string_t> >
+		: public base_classes::es_collectable_object<
+            base_classes::es_object_impl<IDebug, std::wstring> >
     {
+        typedef std::wstring string_t;
 
-        es_debug() throw() {}
+        es_debug() throw()
+        {
+        }
 
-        ~es_debug() throw() {}
+        ~es_debug() throw()
+        {
+        }
 
-        const_string_t const class__() const throw() { return L"Debug"; }
+        const_string_t const class__() const throw()
+        {
+            return L"Debug";
+        }
 
         IUndefined& __stdcall beep() const
         {
@@ -102,8 +108,7 @@ namespace ecmascript {
             base_services::es_puts(output_str);
             delete[] output_str;
 #else
-            base_services::es_puts(str.c_str());
-            wprintf(L"\nsss[%s]\n", v.operator const_string_t const().c_str());
+            wprintf(L"debug.alert() called: %s\n", str.c_str());
 #endif
             return es_undefined<string_t>::create_instance();
         }
@@ -117,16 +122,14 @@ namespace ecmascript {
             output_str[ str.length() ] = '\0';
             puts(output_str);
             delete[] output_str;
-#elif 0
+#else
             char *output_str = new char[str.length() + 1];
             wcstombs(output_str, str.c_str(), str.length());
             output_str[ str.length() ] = '\0';
             puts(output_str);
             delete[] output_str;
-else
-            base_services::es_puts(str.c_str());
+//            base_services::es_puts(str.c_str());
 #endif
-            base_services::es_puts(str.c_str());
             return es_undefined<string_t>::create_instance();
         }
 
@@ -156,7 +159,8 @@ else
 #endif // _MSC_VER
 
 #endif // _MSC_VER
-            std::basic_string<wchar_t> input, line;
+            std::basic_string<wchar_t> input;
+            std::basic_string<wchar_t> line;
             while ( ifs && !ifs.eof() )
             {
                 std::getline( ifs, line );
@@ -165,8 +169,7 @@ else
             return *new es_string<string_t>(&*input.begin(), &*input.end());
         }
 
-        IUndefined& __stdcall 
-        test(IPrimitive const& v1, IPrimitive const& v2) const
+        IUndefined& __stdcall test(IPrimitive const& v1, IPrimitive const& v2) const
         {
 #ifdef _MSC_VER
             MessageBeep(0);
@@ -213,6 +216,11 @@ else
         }
 
         operator const_string_t const() const
+        {
+            return L"debug object";
+        }
+
+        operator string_t const() const
         {
             return L"debug object";
         }

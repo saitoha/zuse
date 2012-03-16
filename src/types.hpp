@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 #include "interface.hpp"
 
@@ -34,7 +33,6 @@ namespace ecmascript {
     template <typename stringT> struct es_regexp;
     template <typename stringT> struct es_arguments;
     template <typename stringT> struct es_native_error;
-    template <typename stringT> struct es_type_error;
 
 } // namespce ecmascript
 
@@ -63,7 +61,7 @@ namespace ecmascript {
 namespace ecmascript {
 
 namespace {
-typedef const_string_t string_t;
+typedef std::wstring string_t;
 typedef es_reference<string_t> reference_t; 
 typedef es_undefined<string_t> undefined_t;
 typedef es_null<string_t> null_t;

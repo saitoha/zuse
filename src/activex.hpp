@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
 
-
 #ifdef _MSC_VER
 
 #include <windows.h>
 #include <comdef.h>
 #include <activscp.h>
 #include <tchar.h>
-#include <vector>
 
 namespace ecmascript {
 
@@ -138,6 +136,7 @@ namespace ecmascript {
             return es_variant_from_primitive<stringT>(v, es_tag<VT::Object>());
         }
         ES_ASSERT(!"es_variant_from_primitive");
+        throw std::logic_error("es_variant_from_primitive");
     }
 
     template <typename stringT>
@@ -251,7 +250,7 @@ namespace ecmascript {
             return es_primitive_from_variant<stringT>(v, es_tag<VT_R8>());
         }
         ES_ASSERT(!"es_primitive_from_variant");
-        return *new es_native_error<string_t>(L"es_primitive_from_variant");
+        throw std::logic_error("es_primitive_from_variant");
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -416,25 +415,31 @@ namespace ecmascript {
             VARIANT* pvarResult
             ) const throw()
         {
-            IArray& arg = *new es_array<stringT>;
-            for (UINT i = 0; i < pdispparams->cArgs; ++i)
-               arg.push(es_primitive_from_variant<stringT>(
-                   pdispparams->rgvarg[pdispparams->cArgs - i - 1]));
-            union {
-                IPrimitive *result;
-                ptrdiff_t value;
-            } box;
-            IPrimitive& box.result = &primitive_.call__(primitive_, arg)
-            if (0 == box.value & 0x1)
-                return *pvarResult = es_variant_from_primitive<stringT>(result), S_OK;
-            --box.value;
-            ::MessageBox( 
-                NULL,
-                NULL,
-                box.result->operator const_string_t const().c_str(), 
-                MB_OK);
-            *pvarResult = _variant_t();
-            return E_UNEXPECTED;
+            try {
+                IArray& arg = *new es_array<stringT>;
+                for (UINT i = 0; i < pdispparams->cArgs; ++i)
+                   arg.push(es_primitive_from_variant<stringT>(
+                       pdispparams->rgvarg[pdispparams->cArgs - i - 1]));
+                *pvarResult = es_variant_from_primitive<stringT>(
+                    primitive_.call__(primitive_, arg));
+            }
+            catch (std::exception& /*e*/) {
+                ES_ASSERT(0);            
+            }
+            catch (es_native_error<std::wstring>& e) {
+                ::MessageBox( 
+                    0,
+                    e.name().operator const_string_t const().c_str(), 
+                    e.message().operator const_string_t const().c_str(), 
+                    0);
+                ES_ASSERT(0);            
+            }
+            catch (...) {
+                ES_ASSERT(0);
+                *pvarResult = _variant_t();
+                return E_UNEXPECTED;
+            }
+            return S_OK;
         }
 
         HRESULT invoke_propertyget(
@@ -460,7 +465,7 @@ namespace ecmascript {
         ULONG m_count;
         IPrimitive& primitive_;
         es_critical_section critical_section_;
-        std::vector<es_const_string> key_;
+        std::vector<std::basic_string<wchar_t> > key_;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -468,11 +473,17 @@ namespace ecmascript {
     //  @fn es_raise_com_error
     //
     template <typename stringT>
-    IPrimitive& es_raise_com_error(_com_error const& e)
+    void es_raise_com_error(_com_error const& e)
     {
         typedef stringT string_t;
-        string_t message = e.Error() + L": " + e.ErrorMessage() + "\n";
-        return *new es_native_error<string_t>(message.str().c_str());
+        std::wstringstream ss;
+        try {
+            ss << e.Error() << L": " << e.ErrorMessage() << std::endl;
+        }
+        catch (...) {
+//            throw *new es_native_error<stringT>(L"com error");
+        }
+        throw *new es_native_error<string_t>(ss.str().c_str());
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -565,6 +576,11 @@ namespace ecmascript {
              return L"actor object";
         }
 
+        operator string_t const() const
+        {
+             return L"actor object";
+        }
+
         IPrimitive& __stdcall assign_mul__(IPrimitive const& rhs)
         {
             return assign_impl(get_value_impl().mul__(rhs));
@@ -642,9 +658,9 @@ namespace ecmascript {
                 m_dispid, IID_NULL, LOCALE_USER_DEFAULT,
                 DISPATCH_METHOD, &params, &result, &excepinfo, &argerr);
             if (DISP_E_EXCEPTION == hr)
-                return es_raise_com_error<string_t>(_com_error(hr));
+                es_raise_com_error<string_t>(_com_error(hr));
             if (FAILED(hr))
-                return es_raise_com_error<string_t>(_com_error(hr));
+                es_raise_com_error<string_t>(_com_error(hr));
             return es_primitive_from_variant<string_t>(result);
         }
 
@@ -658,7 +674,7 @@ namespace ecmascript {
                 m_dispid, IID_NULL, LOCALE_USER_DEFAULT,
                 DISPATCH_PROPERTYGET, &params, &result, &excepinfo, &argerr);
             if (FAILED(hr))
-                return es_raise_com_error<string_t>(_com_error(hr));
+                es_raise_com_error<string_t>(_com_error(hr));
             return es_primitive_from_variant<string_t>(result);
         }
 
@@ -674,14 +690,14 @@ namespace ecmascript {
                 m_dispid, IID_NULL, LOCALE_USER_DEFAULT,
                 DISPATCH_PROPERTYPUT, &params, &result, &excepinfo, &argerr);
             if (FAILED(hr))
-                return es_raise_com_error<string_t>(_com_error(hr));
+                es_raise_com_error<string_t>(_com_error(hr));
             return rhs;
         }
 
         IBoolean& __stdcall delete_impl()
         {
-            return *new es_native_error<string_t>(
-                L"not implemented: es_com_callable_wrapper::delete_impl()");
+            throw std::logic_error(
+                "not implemented: es_com_callable_wrapper::delete_impl()");
         }
 
         IDispatch *m_pDispatch;
@@ -695,9 +711,9 @@ namespace ecmascript {
     //
     struct es_activex_object
     : public base_classes::es_collectable_object<
-        base_classes::es_object_impl<IPrimitive, const_string_t> >
+        base_classes::es_object_impl<IPrimitive, std::wstring> >
     {
-        typedef const_string_t string_t;
+        typedef std::wstring string_t;
         typedef base_classes::es_object_impl<IPrimitive, string_t> object_t;
 
     public:
@@ -717,7 +733,7 @@ namespace ecmascript {
                 IPrimitive& __stdcall construct__(IPrimitive& arguments)
                 {
                     if (arguments.length__() == 0)
-                        return *new es_native_error<string_t>("invalid arguments.");
+                        throw std::runtime_error("invalid arguments.");
                     IDispatch *pdisp;
                     HRESULT hr = ::CoInitialize(NULL);
                     if (FAILED(hr))
@@ -782,6 +798,11 @@ namespace ecmascript {
              return L"activex object";
         }
 
+        operator string_t const() const
+        {
+             return L"activex object";
+        }
+
     private:
         IPrimitive& get_impl(const_string_t const& key)
         {
@@ -796,7 +817,7 @@ namespace ecmascript {
                 return *new es_runtime_callable_wrapper<string_t>(m_pDispatch, rgDispid);
             _com_error const e(hr);
             fwprintf(stderr, L"com error: code=%d message=%s\n", e.Error(), e.ErrorMessage());
-            return *new es_native_error<string_t>("com error: ");
+            throw std::runtime_error("com error: ");
         }
 
      private:

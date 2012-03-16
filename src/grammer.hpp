@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK Version: GPL 3.0 ***** 
- * Copyright (C) 2008-2011  zuse <user@zuse.jp>
+ * Copyright (C) 2008-2011  Hayaki Saito <user@zuse.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */
-
 
 
 #include "action.hpp"
@@ -43,8 +42,8 @@ namespace ecmascript {
         template <typename ScannerT>
         struct result
         {
-            typedef typename 
-                spirit::match_result<ScannerT, spirit::nil_t>::type type;
+            typedef typename spirit::match_result<ScannerT, spirit::nil_t>::type
+                type;
         };
 
         es_singlequoted_stringliteral_parser_gen()
@@ -57,13 +56,13 @@ namespace ecmascript {
                         spirit::operator >> (
                             es_singlequoted_string_p
                             [
-                                es_action_singlequotedstring<const_string_t::const_iterator>()
+                                es_action_singlequotedstring()
                             ]
                             , '\''
                         )
                         , spirit::operator >> (
                             '\''
-                            , es_epsilon_p[ es_action_nullstring<const_string_t::const_iterator>() ]
+                            , es_epsilon_p[ es_action_nullstring() ]
                         )
                     )
                 )
@@ -89,7 +88,7 @@ namespace ecmascript {
                             es_quoted_string_parser_gen<'\''>
                         >::action<
                             es_quoted_string_parser_gen<'\''>
-                            , es_action_singlequotedstring<const_string_t::const_iterator>
+                            , es_action_singlequotedstring
                         >
                         , spirit::chlit<char>
                     >
@@ -99,7 +98,7 @@ namespace ecmascript {
                             es_epsilon_parser
                         >::action<
                             es_epsilon_parser
-                            , es_action_nullstring<const_string_t::const_iterator>
+                            , es_action_nullstring
                         >
                     >
                 >
@@ -137,13 +136,13 @@ namespace ecmascript {
                         spirit::operator >> (
                             es_doublequoted_string_p
                             [
-                                es_action_doublequotedstring<const_string_t::const_iterator>()
+                                es_action_doublequotedstring()
                             ]
                             , '"'
                         )
                         , spirit::operator >> (
                             '"'
-                            , es_epsilon_p[ es_action_nullstring<const_string_t::const_iterator>() ]
+                            , es_epsilon_p[ es_action_nullstring() ]
                         )
                     )
                 )
@@ -169,7 +168,7 @@ namespace ecmascript {
                             es_quoted_string_parser_gen<'"'>
                         >::action<
                             es_quoted_string_parser_gen<'"'>,
-                            es_action_doublequotedstring<const_string_t::const_iterator>
+                            es_action_doublequotedstring
                         >,
                         spirit::chlit<char>
                     >,
@@ -179,7 +178,7 @@ namespace ecmascript {
                             ecmascript::es_epsilon_parser
                         >::action<
                             es_epsilon_parser,
-                            es_action_nullstring<const_string_t::const_iterator>
+                            es_action_nullstring
                         >
                     >
                 >
@@ -209,14 +208,14 @@ namespace ecmascript {
             >::type type;
         };
         
-        es_number_parser_gen()
+        es_number_parser_gen() throw()
         : parser_(
             '0'
             >> (
-                'x' >> es_hex_p[ es_action_number<const_string_t::const_iterator>() ]
-                | 'X' >> es_hex_p[ es_action_number<const_string_t::const_iterator>() ]
+                'x' >> es_hex_p[ es_action_number() ]
+                | 'X' >> es_hex_p[ es_action_number() ]
             )
-            | es_decimal_parser[ es_action_number<const_string_t::const_iterator>() ]
+            | es_decimal_parser[ es_action_number() ]
         )
         {
         }
@@ -239,7 +238,7 @@ namespace ecmascript {
                             es_hex_parser_gen
                         >::action<
                             es_hex_parser_gen
-                            , es_action_number<const_string_t::const_iterator>
+                            , es_action_number
                         >
                     >
                     , spirit::sequence<
@@ -248,14 +247,14 @@ namespace ecmascript {
                             es_hex_parser_gen
                         >::action<
                             es_hex_parser_gen
-                            , es_action_number<const_string_t::const_iterator>
+                            , es_action_number
                         >
                     >
                 >
             >
             , spirit::parser<es_decimal_parserarser_gen>::action<
                 es_decimal_parserarser_gen
-                , es_action_number<const_string_t::const_iterator>
+                , es_action_number
             >
         > const parser_;
     };
@@ -281,7 +280,7 @@ namespace ecmascript {
                 type;
         };
 
-        program_parser()
+        program_parser() throw()
         {
             using namespace spirit;
 
@@ -292,23 +291,23 @@ namespace ecmascript {
                         ',' >> (
                             ElementList
                             | ']'
-                            >> es_epsilon_p[ es_action_undefined<const_string_t::const_iterator>() ]
+                            >> es_epsilon_p[ es_action_undefined() ]
                         )
                         | ']'
-                        >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                        >> es_epsilon_p[ es_action_nop() ]
                     )
                     | ','
-                    >> es_epsilon_p[ es_action_undefined<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_undefined() ]
                     >> (
                         ElementList
                         | ']'
-                        >> es_epsilon_p[ es_action_undefined<const_string_t::const_iterator>() ]
+                        >> es_epsilon_p[ es_action_undefined() ]
                     )
-                )[ es_action_arrayelement<const_string_t::const_iterator>() ]
+                )[ es_action_arrayelement() ]
 
             , PropertyNameAndValueList
                 = (
-                    es_identifier_p[ es_action_string<const_string_t::const_iterator>() ]
+                    es_identifier_p[ es_action_string() ]
                     | es_singlequoted_stringliteral_parser
                     | es_doublequoted_stringliteral_parser
                     | es_number_parser
@@ -317,71 +316,68 @@ namespace ecmascript {
                 >> (
                     ',' >> PropertyNameAndValueList
                     | '}'
-                    >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
-                )[ es_action_objectelement<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_nop() ]
+                )[ es_action_objectelement() ]
 
             , Token
-                = es_identifier_p[ es_action_identifier<const_string_t::const_iterator>() ]
+                = es_identifier_p[ es_action_identifier() ]
                 | '(' >> Expression >> ')'
                 | '{' >> (
                     '}'
-                    >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_nop() ]
                     | PropertyNameAndValueList
-                )[ es_action_object<const_string_t::const_iterator>() ]
+                )[ es_action_object() ]
                 | '[' >> (
                     ']'
-                    >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_nop() ]
                     | ElementList
                 )
                 [
-                    es_action_array<const_string_t::const_iterator>()
+                    es_action_array()
                 ]
                 | es_singlequoted_stringliteral_parser
                 | es_doublequoted_stringliteral_parser
-                | "true" >> es_epsilon_p[ es_action_true<const_string_t::const_iterator>() ]
-                | "this" >> es_epsilon_p[ es_action_this<const_string_t::const_iterator>() ]
-                | "false"  >> es_epsilon_p[ es_action_false<const_string_t::const_iterator>() ]
+                | "true" >> es_epsilon_p[ es_action_true() ]
+                | "this" >> es_epsilon_p[ es_action_this() ]
+                | "false"  >> es_epsilon_p[ es_action_false() ]
                 | FunctionExpression
                 | (
-                    "null" >> es_epsilon_p[ es_action_null<const_string_t::const_iterator>() ]
+                    "null" >> es_epsilon_p[ es_action_null() ]
                     | "new" >> Token >> !MemberExpression_Notation
                     [
-                        es_action_binary<const_string_t::const_iterator>()
+                        es_action_binary()
                     ]
                     >> (
                         '(' >> (
                             NewArgument
                             | ')'
-                            >> es_epsilon_p[ es_action_newargend<const_string_t::const_iterator>() ]
-                            >> !(
-                                Arguments
-                                | CallUnits
-                                [
-                                    es_action_binary<const_string_t::const_iterator>()
-                                ]
-                            )
+                            >> es_epsilon_p[ es_action_newargend() ]
+                            >> !CallUnits
+                            [
+                                es_action_binary()
+                            ]
                         )
                         [
-                            es_action_args<const_string_t::const_iterator>()
+                            es_action_args()
                         ]
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                         | (
-                            es_epsilon_p[ es_action_new<const_string_t::const_iterator>() ]
+                            es_epsilon_p[ es_action_new() ]
                             >> AssignmentOperator
                             | ConditionalExpressionAfterLhs
                         ) >> !( ',' >> Expression )
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                     )
                     >> (';' | es_epsilon_p)
                 )
-                | '/' >> es_lexeme_d[ 
+                | '/' >> (
                     ( '\\' >> es_anychar_p | (es_anychar_p - '*' - '/') )
                     >> *( '\\' >> es_anychar_p | (es_anychar_p - '/') )
-                ][ es_action_nativestring<const_string_t::const_iterator>() ]
+                )[ es_action_nativestring() ]
                 >> (
                     '/' >> !(
                         'g' >> !(
@@ -397,20 +393,20 @@ namespace ecmascript {
                             | 'i' >> ('g' | es_epsilon_p)
                         )
                     )
-                )[ es_action_regexp<const_string_t::const_iterator>() ]
+                )[ es_action_regexp() ]
                 | es_number_parser
 
             , MemberExpression_Notation
                 = (
-                    '.' >> es_identifier_p[ es_action_member<const_string_t::const_iterator>() ]
-                    | ( '[' >> Expression >> ']' )[ es_action_bracket<const_string_t::const_iterator>() ]
+                    '.' >> es_identifier_p[ es_action_member() ]
+                    | ( '[' >> Expression >> ']' )[ es_action_bracket() ]
                 )
                 >> !(
                     Arguments
                     | MemberExpression_Notation
                 )
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , NewArgument
@@ -418,59 +414,47 @@ namespace ecmascript {
                 >> (
                     ',' >> NewArgument
                     | ')'
-                    >> es_epsilon_p[ es_action_newargend<const_string_t::const_iterator>() ]
-                    >> !(
-                        Arguments
-                        | CallUnits
-                        [
-                            es_action_binary<const_string_t::const_iterator>()
-                        ]
-                    )
-                )[ es_action_arg<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_newargend() ]
+                    >> !CallUnits
+                    [
+                        es_action_binary()
+                    ]
+                )[ es_action_arg() ]
 
             , CallUnits
                 = (
-                    '.' >> es_identifier_p[ es_action_member<const_string_t::const_iterator>() ]
-                    | ( '[' >> Expression >> ']' )[ es_action_bracket<const_string_t::const_iterator>() ]
+                    '.' >> es_identifier_p[ es_action_member() ]
+                    | ( '[' >> Expression >> ']' )[ es_action_bracket() ]
                 ) >> !(
-                    Arguments
-                    | CallUnits
-                    [
-                        es_action_binary<const_string_t::const_iterator>()
-                    ]
+                    CallUnits
+                    | Arguments
                 )
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , Arguments
                 = '(' >> (
                     Argument
                     | ')'
-                    >> es_epsilon_p[ es_action_argend<const_string_t::const_iterator>() ]
-                    >> !(
-                        Arguments
-                        | CallUnits
-                        [
-                            es_action_binary<const_string_t::const_iterator>()
-                        ]
-                    )
-                )[ es_action_args<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_argend() ]
+                    >> !CallUnits
+                    [
+                        es_action_binary()
+                    ]
+                )[ es_action_args() ]
 
             , Argument
                 = AssignmentExpression
                 >> (
                     ',' >> Argument
                     | ')'
-                    >> es_epsilon_p[ es_action_argend<const_string_t::const_iterator>() ]
-                    >> !(
-                        Arguments
-                        | CallUnits
-                        [
-                            es_action_binary<const_string_t::const_iterator>()
-                        ]
-                    )
-                )[ es_action_arg<const_string_t::const_iterator>() ]
+                    >> es_epsilon_p[ es_action_argend() ]
+                    >> !CallUnits
+                    [
+                        es_action_binary()
+                    ]
+                )[ es_action_arg() ]
 
             , LeftHandSideExpression
                 = (
@@ -478,15 +462,15 @@ namespace ecmascript {
                         (
                             !MemberExpression_Notation
                             [
-                                es_action_binary<const_string_t::const_iterator>()
+                                es_action_binary()
                             ]
                             >> !Arguments
                             [
-                                es_action_binary<const_string_t::const_iterator>()
+                                es_action_binary()
                             ]
                         )
                         [
-                            es_action_call<const_string_t::const_iterator>()
+                            es_action_call()
                         ]
                         | es_epsilon_p
                     )
@@ -498,193 +482,193 @@ namespace ecmascript {
 
             , PostfixExpressionAfterLhs
                 = *(
-                    "++" >> es_epsilon_p[ es_action_postinc<const_string_t::const_iterator>() ]
-                    | "--" >> es_epsilon_p[ es_action_postdec<const_string_t::const_iterator>() ]
+                    "++" >> es_epsilon_p[ es_action_postinc() ]
+                    | "--" >> es_epsilon_p[ es_action_postdec() ]
                 )
 
             , UnaryExpression
                 = PostfixExpression
-                | "++" >> UnaryExpression[ es_action_inc<const_string_t::const_iterator>() ]
-                | "--" >> UnaryExpression[ es_action_dec<const_string_t::const_iterator>() ]
-                | '+' >> UnaryExpression[ es_action_unaryplus<const_string_t::const_iterator>() ]
-                | '-' >> UnaryExpression[ es_action_unaryminus<const_string_t::const_iterator>() ]
-                | '~' >> UnaryExpression[ es_action_tilde<const_string_t::const_iterator>() ]
-                | '!' >> UnaryExpression[ es_action_not<const_string_t::const_iterator>() ]
-                | "delete" >> UnaryExpression[ es_action_delete<const_string_t::const_iterator>() ]
-                | "void" >> UnaryExpression[ es_action_void<const_string_t::const_iterator>() ]
-                | "typeof" >> UnaryExpression[ es_action_typeof<const_string_t::const_iterator>() ]
+                | "++" >> UnaryExpression[ es_action_inc() ]
+                | "--" >> UnaryExpression[ es_action_dec() ]
+                | '+' >> UnaryExpression[ es_action_unaryplus() ]
+                | '-' >> UnaryExpression[ es_action_unaryminus() ]
+                | '~' >> UnaryExpression[ es_action_tilde() ]
+                | '!' >> UnaryExpression[ es_action_not() ]
+                | "delete" >> UnaryExpression[ es_action_delete() ]
+                | "void" >> UnaryExpression[ es_action_void() ]
+                | "typeof" >> UnaryExpression[ es_action_typeof() ]
 
             , MultiplicativeExpression
                 = UnaryExpression
                 >> *(
-                    '*' >> UnaryExpression[ es_action_mul<const_string_t::const_iterator>() ]
-                    | '/' >> UnaryExpression[ es_action_div<const_string_t::const_iterator>() ]
-                    | '%' >> UnaryExpression[ es_action_mod<const_string_t::const_iterator>() ]
+                    '*' >> UnaryExpression[ es_action_mul() ]
+                    | '/' >> UnaryExpression[ es_action_div() ]
+                    | '%' >> UnaryExpression[ es_action_mod() ]
                 )
 
             , MultiplicativeExpressionAfterLhs
                 = PostfixExpressionAfterLhs
                 >> *(
-                    '*' >> UnaryExpression[ es_action_mul<const_string_t::const_iterator>() ]
-                    | '/' >> UnaryExpression[ es_action_div<const_string_t::const_iterator>() ]
-                    | '%' >> UnaryExpression[ es_action_mod<const_string_t::const_iterator>() ]
+                    '*' >> UnaryExpression[ es_action_mul() ]
+                    | '/' >> UnaryExpression[ es_action_div() ]
+                    | '%' >> UnaryExpression[ es_action_mod() ]
                 )
 
             , AdditiveExpression
                 = MultiplicativeExpression
                 >> *(
-                    '+' >> MultiplicativeExpression[ es_action_plus<const_string_t::const_iterator>() ]
-                    | '-' >> MultiplicativeExpression[ es_action_minus<const_string_t::const_iterator>() ]
+                    '+' >> MultiplicativeExpression[ es_action_plus() ]
+                    | '-' >> MultiplicativeExpression[ es_action_minus() ]
                 )
 
             , AdditiveExpressionAfterLhs
                 = MultiplicativeExpressionAfterLhs
                 >> *(
-                    '+' >> MultiplicativeExpression[ es_action_plus<const_string_t::const_iterator>() ]
-                    | '-' >> MultiplicativeExpression[ es_action_minus<const_string_t::const_iterator>() ]
+                    '+' >> MultiplicativeExpression[ es_action_plus() ]
+                    | '-' >> MultiplicativeExpression[ es_action_minus() ]
                 )
 
             , ShiftExpression
                 = AdditiveExpression
                 >> *(
-                    "<<" >> AdditiveExpression[ es_action_shl<const_string_t::const_iterator>() ]
-                    | ">>>" >> AdditiveExpression[ es_action_sar<const_string_t::const_iterator>() ]
-                    | ">>" >> AdditiveExpression[ es_action_shr<const_string_t::const_iterator>() ]
+                    "<<" >> AdditiveExpression[ es_action_shl() ]
+                    | ">>>" >> AdditiveExpression[ es_action_sar() ]
+                    | ">>" >> AdditiveExpression[ es_action_shr() ]
                 )
 
             , ShiftExpressionAfterLhs
                 = AdditiveExpressionAfterLhs
                 >> *(
-                    "<<" >> AdditiveExpression[ es_action_shl<const_string_t::const_iterator>() ]
-                    | ">>>" >> AdditiveExpression[ es_action_sar<const_string_t::const_iterator>() ]
-                    | ">>" >> AdditiveExpression[ es_action_shr<const_string_t::const_iterator>() ]
+                    "<<" >> AdditiveExpression[ es_action_shl() ]
+                    | ">>>" >> AdditiveExpression[ es_action_sar() ]
+                    | ">>" >> AdditiveExpression[ es_action_shr() ]
                 )
 
             , RelationalExpression
                 = ShiftExpression
                 >> *(
-                    "<=" >> ShiftExpression[ es_action_le<const_string_t::const_iterator>() ]
-                    | ">=" >> ShiftExpression[ es_action_ge<const_string_t::const_iterator>() ]
-                    | '<' >> ShiftExpression[ es_action_lt<const_string_t::const_iterator>() ]
-                    | '>' >> ShiftExpression[ es_action_gt<const_string_t::const_iterator>() ]
-                    | "instanceof" >> ShiftExpression[ es_action_instanceof<const_string_t::const_iterator>() ]
-                    | "in" >> ShiftExpression[ es_action_in<const_string_t::const_iterator>() ]
+                    "<=" >> ShiftExpression[ es_action_le() ]
+                    | ">=" >> ShiftExpression[ es_action_ge() ]
+                    | '<' >> ShiftExpression[ es_action_lt() ]
+                    | '>' >> ShiftExpression[ es_action_gt() ]
+                    | "instanceof" >> ShiftExpression[ es_action_instanceof() ]
+                    | "in" >> ShiftExpression[ es_action_in() ]
                 )
 
             , RelationalExpressionNoIn
                 = ShiftExpression
                 >>  *(
-                    "<=" >> ShiftExpression[ es_action_le<const_string_t::const_iterator>() ]
-                    | ">=" >> ShiftExpression[ es_action_ge<const_string_t::const_iterator>() ]
-                    | '<' >> ShiftExpression[ es_action_lt<const_string_t::const_iterator>() ]
-                    | '>' >> ShiftExpression[ es_action_gt<const_string_t::const_iterator>() ]
-                    | "instanceof" >> ShiftExpression[ es_action_instanceof<const_string_t::const_iterator>() ]
+                    "<=" >> ShiftExpression[ es_action_le() ]
+                    | ">=" >> ShiftExpression[ es_action_ge() ]
+                    | '<' >> ShiftExpression[ es_action_lt() ]
+                    | '>' >> ShiftExpression[ es_action_gt() ]
+                    | "instanceof" >> ShiftExpression[ es_action_instanceof() ]
                 )
 
             , RelationalExpressionAfterLhs
                 = ShiftExpressionAfterLhs
                 >> *(
-                    "<=" >> ShiftExpression[ es_action_le<const_string_t::const_iterator>() ]
-                    | ">=" >> ShiftExpression[ es_action_ge<const_string_t::const_iterator>() ]
-                    | '<' >> ShiftExpression[ es_action_lt<const_string_t::const_iterator>() ]
-                    | '>' >> ShiftExpression[ es_action_gt<const_string_t::const_iterator>() ]
-                    | "instanceof" >> ShiftExpression[ es_action_instanceof<const_string_t::const_iterator>() ]
-                    | "in" >> ShiftExpression[ es_action_in<const_string_t::const_iterator>() ]
+                    "<=" >> ShiftExpression[ es_action_le() ]
+                    | ">=" >> ShiftExpression[ es_action_ge() ]
+                    | '<' >> ShiftExpression[ es_action_lt() ]
+                    | '>' >> ShiftExpression[ es_action_gt() ]
+                    | "instanceof" >> ShiftExpression[ es_action_instanceof() ]
+                    | "in" >> ShiftExpression[ es_action_in() ]
                 )
 
             , RelationalExpressionNoInAfterLhs
                 = ShiftExpressionAfterLhs
                 >> *(
-                    "<=" >> ShiftExpression[ es_action_le<const_string_t::const_iterator>() ]
-                    | ">=" >> ShiftExpression[ es_action_ge<const_string_t::const_iterator>() ]
-                    | '<' >> ShiftExpression[ es_action_lt<const_string_t::const_iterator>() ]
-                    | '>' >> ShiftExpression[ es_action_gt<const_string_t::const_iterator>() ]
-                    | "instanceof" >> ShiftExpression[ es_action_instanceof<const_string_t::const_iterator>() ]
+                    "<=" >> ShiftExpression[ es_action_le() ]
+                    | ">=" >> ShiftExpression[ es_action_ge() ]
+                    | '<' >> ShiftExpression[ es_action_lt() ]
+                    | '>' >> ShiftExpression[ es_action_gt() ]
+                    | "instanceof" >> ShiftExpression[ es_action_instanceof() ]
                 )
 
             , EqualityExpression
                 = RelationalExpression
                 >> *(
-                    "===" >> RelationalExpression[ es_action_stricteq<const_string_t::const_iterator>() ]
-                    | "!==" >> RelationalExpression[ es_action_strictne<const_string_t::const_iterator>() ]
-                    | "==" >> RelationalExpression[ es_action_eq<const_string_t::const_iterator>() ]
-                    | "!=" >> RelationalExpression[ es_action_ne<const_string_t::const_iterator>() ]
+                    "===" >> RelationalExpression[ es_action_stricteq() ]
+                    | "!==" >> RelationalExpression[ es_action_strictne() ]
+                    | "==" >> RelationalExpression[ es_action_eq() ]
+                    | "!=" >> RelationalExpression[ es_action_ne() ]
                 )
 
             , EqualityExpressionNoIn
                 = RelationalExpressionNoIn
                 >> *(
-                    "===" >> RelationalExpressionNoIn[ es_action_stricteq<const_string_t::const_iterator>() ]
-                    | "!==" >> RelationalExpressionNoIn[ es_action_strictne<const_string_t::const_iterator>() ]
-                    | "==" >> RelationalExpressionNoIn[ es_action_eq<const_string_t::const_iterator>() ]
-                    | "!=" >> RelationalExpressionNoIn[ es_action_ne<const_string_t::const_iterator>() ]
+                    "===" >> RelationalExpressionNoIn[ es_action_stricteq() ]
+                    | "!==" >> RelationalExpressionNoIn[ es_action_strictne() ]
+                    | "==" >> RelationalExpressionNoIn[ es_action_eq() ]
+                    | "!=" >> RelationalExpressionNoIn[ es_action_ne() ]
                 )
 
             , EqualityExpressionAfterLhs
                 = RelationalExpressionAfterLhs
                 >> *(
-                    "===" >> RelationalExpression[ es_action_stricteq<const_string_t::const_iterator>() ]
-                    | "!==" >> RelationalExpression[ es_action_strictne<const_string_t::const_iterator>() ]
-                    | "==" >> RelationalExpression[ es_action_eq<const_string_t::const_iterator>() ]
-                    | "!=" >> RelationalExpression[ es_action_ne<const_string_t::const_iterator>() ]
+                    "===" >> RelationalExpression[ es_action_stricteq() ]
+                    | "!==" >> RelationalExpression[ es_action_strictne() ]
+                    | "==" >> RelationalExpression[ es_action_eq() ]
+                    | "!=" >> RelationalExpression[ es_action_ne() ]
                 )
 
             , EqualityExpressionNoInAfterLhs
                 = RelationalExpressionNoInAfterLhs
                 >> *(
-                    "===" >> RelationalExpressionNoIn[ es_action_stricteq<const_string_t::const_iterator>() ]
-                    | "!==" >> RelationalExpressionNoIn[ es_action_strictne<const_string_t::const_iterator>() ]
-                    | "==" >> RelationalExpressionNoIn[ es_action_eq<const_string_t::const_iterator>() ]
-                    | "!=" >> RelationalExpressionNoIn[ es_action_ne<const_string_t::const_iterator>() ]
+                    "===" >> RelationalExpressionNoIn[ es_action_stricteq() ]
+                    | "!==" >> RelationalExpressionNoIn[ es_action_strictne() ]
+                    | "==" >> RelationalExpressionNoIn[ es_action_eq() ]
+                    | "!=" >> RelationalExpressionNoIn[ es_action_ne() ]
                 )
 
             , BitwiseANDExpression
                 = EqualityExpression
-                >> *( '&' >> EqualityExpression[ es_action_bitand<const_string_t::const_iterator>() ] )
+                >> *( '&' >> EqualityExpression[ es_action_bitand() ] )
 
             , BitwiseANDExpressionNoIn
                 = EqualityExpressionNoIn
-                >> *( '&' >> EqualityExpressionNoIn[ es_action_bitand<const_string_t::const_iterator>() ] )
+                >> *( '&' >> EqualityExpressionNoIn[ es_action_bitand() ] )
 
             , BitwiseANDExpressionAfterLhs
                 = EqualityExpressionAfterLhs
-                >> *( '&' >> EqualityExpression[ es_action_bitand<const_string_t::const_iterator>() ] )
+                >> *( '&' >> EqualityExpression[ es_action_bitand() ] )
 
             , BitwiseANDExpressionNoInAfterLhs
                 = EqualityExpressionNoInAfterLhs
-                >> *( '&' >> EqualityExpressionNoIn[ es_action_bitand<const_string_t::const_iterator>() ] )
+                >> *( '&' >> EqualityExpressionNoIn[ es_action_bitand() ] )
 
             , BitwiseXORExpression
                 = BitwiseANDExpression
-                >> *( '^' >> BitwiseANDExpression[ es_action_bitxor<const_string_t::const_iterator>() ] )
+                >> *( '^' >> BitwiseANDExpression[ es_action_bitxor() ] )
 
             , BitwiseXORExpressionNoIn
                 = BitwiseANDExpressionNoIn
-                >> *( '^' >> BitwiseANDExpressionNoIn[ es_action_bitxor<const_string_t::const_iterator>() ] )
+                >> *( '^' >> BitwiseANDExpressionNoIn[ es_action_bitxor() ] )
 
             , BitwiseXORExpressionAfterLhs
                 = BitwiseANDExpressionAfterLhs
-                >> *( '^' >> BitwiseANDExpression[ es_action_bitxor<const_string_t::const_iterator>() ] )
+                >> *( '^' >> BitwiseANDExpression[ es_action_bitxor() ] )
 
             , BitwiseXORExpressionNoInAfterLhs
                 = BitwiseANDExpressionNoInAfterLhs
-                >> *( '^' >> BitwiseANDExpressionNoIn[ es_action_bitxor<const_string_t::const_iterator>() ] )
+                >> *( '^' >> BitwiseANDExpressionNoIn[ es_action_bitxor() ] )
 
             , BitwiseORExpression
                 = BitwiseXORExpression
-                >> *( '|' >> BitwiseXORExpression[ es_action_bitor<const_string_t::const_iterator>() ] )
+                >> *( '|' >> BitwiseXORExpression[ es_action_bitor() ] )
 
             , BitwiseORExpressionNoIn
                 = BitwiseXORExpressionNoIn
-                >> *( '|' >> BitwiseXORExpressionNoIn[ es_action_bitor<const_string_t::const_iterator>() ] )
+                >> *( '|' >> BitwiseXORExpressionNoIn[ es_action_bitor() ] )
 
             , BitwiseORExpressionAfterLhs
                 = BitwiseXORExpressionAfterLhs
-                >> *( '|' >> BitwiseXORExpression[ es_action_bitor<const_string_t::const_iterator>() ] )
+                >> *( '|' >> BitwiseXORExpression[ es_action_bitor() ] )
 
             , BitwiseORExpressionNoInAfterLhs
                 = BitwiseXORExpressionNoInAfterLhs
-                >> *( '|' >> BitwiseXORExpressionNoIn[ es_action_bitor<const_string_t::const_iterator>() ] )
+                >> *( '|' >> BitwiseXORExpressionNoIn[ es_action_bitor() ] )
 
             , LogicalANDExpression
                 = BitwiseORExpression
@@ -692,10 +676,10 @@ namespace ecmascript {
                     "&&" 
                     >> BitwiseORExpression
                     [ 
-                        es_action_and<const_string_t::const_iterator>() 
+                        es_action_and() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -705,10 +689,10 @@ namespace ecmascript {
                     "&&" 
                     >> BitwiseXORExpressionNoIn
                     [ 
-                        es_action_and<const_string_t::const_iterator>() 
+                        es_action_and() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -718,10 +702,10 @@ namespace ecmascript {
                     "&&" 
                     >> BitwiseORExpression
                     [ 
-                        es_action_and<const_string_t::const_iterator>() 
+                        es_action_and() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -731,10 +715,10 @@ namespace ecmascript {
                     "&&" 
                     >> BitwiseORExpressionNoIn
                     [ 
-                        es_action_and<const_string_t::const_iterator>() 
+                        es_action_and() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -744,10 +728,10 @@ namespace ecmascript {
                     "||" 
                     >> LogicalANDExpression
                     [ 
-                        es_action_or<const_string_t::const_iterator>() 
+                        es_action_or() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -757,10 +741,10 @@ namespace ecmascript {
                     "||" 
                     >> LogicalANDExpressionNoIn
                     [ 
-                        es_action_or<const_string_t::const_iterator>() 
+                        es_action_or() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -770,10 +754,10 @@ namespace ecmascript {
                     "||" 
                     >> LogicalANDExpression
                     [ 
-                        es_action_or<const_string_t::const_iterator>() 
+                        es_action_or() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -783,10 +767,10 @@ namespace ecmascript {
                     "||" 
                     >> LogicalANDExpressionNoIn
                     [ 
-                        es_action_or<const_string_t::const_iterator>() 
+                        es_action_or() 
                     ]
                     [ 
-                        es_action_binary<const_string_t::const_iterator>() 
+                        es_action_binary() 
                     ] 
                 )
 
@@ -812,10 +796,10 @@ namespace ecmascript {
                 >> ':' 
                 >> AssignmentExpression
                 [ 
-                    es_action_alternative<const_string_t::const_iterator>() 
+                    es_action_alternative() 
                 ]
                 [ 
-                    es_action_binary<const_string_t::const_iterator>() 
+                    es_action_binary() 
                 ]
                 >> !ConditionalExpression_Alternative
 
@@ -825,10 +809,10 @@ namespace ecmascript {
                 >> ':' 
                 >> AssignmentExpressionNoIn
                 [ 
-                    es_action_alternative<const_string_t::const_iterator>() 
+                    es_action_alternative() 
                 ]
                 [ 
-                    es_action_binary<const_string_t::const_iterator>() 
+                    es_action_binary() 
                 ]
                 >> !ConditionalExpressionNoIn_Alternative
 
@@ -849,107 +833,107 @@ namespace ecmascript {
                 | ConditionalExpressionNoIn
 
             , AssignmentOperator
-                = 
-                (
+                = es_lexeme_d
+                [
                     '=' >> AssignmentExpression
                     [ 
-                        es_action_assign<const_string_t::const_iterator>() 
+                        es_action_assign() 
                     ]
                     | "*=" >> AssignmentExpression
                     [ 
-                        es_action_assignmul<const_string_t::const_iterator>()
+                        es_action_assignmul()
                     ]
                     | "/=" >> AssignmentExpression
                     [ 
-                        es_action_assigndiv<const_string_t::const_iterator>() 
+                        es_action_assigndiv() 
                     ]
                     | "%=" >> AssignmentExpression
                     [ 
-                        es_action_assignmod<const_string_t::const_iterator>() 
+                        es_action_assignmod() 
                     ]
                     | "+=" >> AssignmentExpression
                     [ 
-                        es_action_assignplus<const_string_t::const_iterator>() 
+                        es_action_assignplus() 
                     ]
                     | "-=" >> AssignmentExpression
                     [ 
-                        es_action_assignminus<const_string_t::const_iterator>() 
+                        es_action_assignminus() 
                     ]
                     | "<<=" >> AssignmentExpression
                     [ 
-                        es_action_assignshl<const_string_t::const_iterator>() 
+                        es_action_assignshl() 
                     ]
                     | ">>>=" >> AssignmentExpression
                     [ 
-                        es_action_assignsar<const_string_t::const_iterator>() 
+                        es_action_assignsar() 
                     ]
                     | ">>=" >> AssignmentExpression
                     [ 
-                        es_action_assignshr<const_string_t::const_iterator>() 
+                        es_action_assignshr() 
                     ]
                     | "&=" >> AssignmentExpression
                     [ 
-                        es_action_assignand<const_string_t::const_iterator>() 
+                        es_action_assignand() 
                     ]
                     | "^=" >> AssignmentExpression
                     [ 
-                        es_action_assignxor<const_string_t::const_iterator>() 
+                        es_action_assignxor() 
                     ]
                     | "|=" >> AssignmentExpression
                     [ 
-                        es_action_assignor<const_string_t::const_iterator>() 
+                        es_action_assignor() 
                     ]
-                ) >> !AssignmentOperator
+                ] >> !AssignmentOperator
 
             , AssignmentOperatorNoIn
                 = (
                     '=' >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assign<const_string_t::const_iterator>() 
+                        es_action_assign() 
                     ]
                     | "*=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignmul<const_string_t::const_iterator>() 
+                        es_action_assignmul() 
                     ]
                     | "/=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assigndiv<const_string_t::const_iterator>() 
+                        es_action_assigndiv() 
                     ]
                     | "%=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignmod<const_string_t::const_iterator>() 
+                        es_action_assignmod() 
                     ]
                     | "+=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignplus<const_string_t::const_iterator>() 
+                        es_action_assignplus() 
                     ]
                     | "-=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignminus<const_string_t::const_iterator>() 
+                        es_action_assignminus() 
                     ]
                     | "<<=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignshl<const_string_t::const_iterator>() 
+                        es_action_assignshl() 
                     ]
                     | ">>>=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignsar<const_string_t::const_iterator>() 
+                        es_action_assignsar() 
                     ]
                     | ">>=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignshr<const_string_t::const_iterator>() 
+                        es_action_assignshr() 
                     ]
                     | "&=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignand<const_string_t::const_iterator>() 
+                        es_action_assignand() 
                     ]
                     | "^=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignxor<const_string_t::const_iterator>() 
+                        es_action_assignxor() 
                     ]
                     | "|=" >> AssignmentExpressionNoIn
                     [ 
-                        es_action_assignor<const_string_t::const_iterator>() 
+                        es_action_assignor() 
                     ]
                 ) >> !AssignmentOperatorNoIn
 
@@ -957,14 +941,14 @@ namespace ecmascript {
                 = AssignmentExpression
                 >> !( ',' >> Expression )
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , ExpressionNoIn
                 = AssignmentExpressionNoIn
                 >> !( ',' >> ExpressionNoIn )
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , Statement
@@ -990,14 +974,14 @@ namespace ecmascript {
                     | ( TryStatement | ThrowStatement )
                 )
                 | Expression >> (';' | es_epsilon_p)
-                | (es_epsilon_p >> ';')[ es_action_unary<const_string_t::const_iterator>() ]
+                | (es_epsilon_p >> ';')[ es_action_unary() ]
 
             , VariableStatement
                 = "var" >> (
                     VariableDeclaration
                     >> *( ',' >> VariableDeclaration )
                     [
-                        es_action_binary<const_string_t::const_iterator>()
+                        es_action_binary()
                     ]
                 )
                 >> (';' | es_epsilon_p)
@@ -1005,11 +989,11 @@ namespace ecmascript {
             , VariableDeclaration
                 = es_identifier_p
                 [
-                    es_action_nativestring<const_string_t::const_iterator>()
+                    es_action_nativestring()
                 ]
                 >> (
-                    ( '=' >> AssignmentExpression )[ es_action_varinit<const_string_t::const_iterator>() ]
-                    | es_epsilon_p[ es_action_var<const_string_t::const_iterator>() ]
+                    ( '=' >> AssignmentExpression )[ es_action_varinit() ]
+                    | es_epsilon_p[ es_action_var() ]
                 )
 
             , IfStatement
@@ -1028,21 +1012,21 @@ namespace ecmascript {
                     "else" >> (
                         Statement
                         | illegal_if_statement_else_statement_not_found_p
-                    )[ es_action_ifelse<const_string_t::const_iterator>() ]
-                    | es_epsilon_p[ es_action_if<const_string_t::const_iterator>() ]
-                )[ es_action_binary<const_string_t::const_iterator>() ]
+                    )[ es_action_ifelse() ]
+                    | es_epsilon_p[ es_action_if() ]
+                )[ es_action_binary() ]
                 >> (';' | es_epsilon_p)
 
             , IterationStatement_DoWhile
                 = "do" >> Statement
-                >> "while" >> '(' >> Expression[ es_action_dowhile<const_string_t::const_iterator>() ] >> ')'
+                >> "while" >> '(' >> Expression[ es_action_dowhile() ] >> ')'
                 >> (';' | es_epsilon_p)
 
             , IterationStatement_While
                 = "while" >> ( '(' >> Expression >> ')' )
                 >> Statement
                 [
-                    es_action_while<const_string_t::const_iterator>()
+                    es_action_while()
                 ]
 
             , IterationStatement_For
@@ -1055,110 +1039,110 @@ namespace ecmascript {
                             "in" 
                             >> Expression
                             >> ')'
-                            >> Statement[ es_action_forin<const_string_t::const_iterator>() ]
+                            >> Statement[ es_action_forin() ]
                             | (
                                 AssignmentOperatorNoIn
                                 | ConditionalExpressionNoInAfterLhs
                             )
                             >> !( ',' >> ExpressionNoIn )
                             [
-                                es_action_binary<const_string_t::const_iterator>()
+                                es_action_binary()
                             ]
                             >> ';'
-                            >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] ) 
+                            >> ( Expression | es_epsilon_p[ es_action_nop() ] ) 
                             >> ';'
-                            >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] )
+                            >> ( Expression | es_epsilon_p[ es_action_nop() ] )
                             >> ')'
-                            >> Statement[ es_action_for<const_string_t::const_iterator>() ]
+                            >> Statement[ es_action_for() ]
                             [
-                                es_action_binary<const_string_t::const_iterator>()
+                                es_action_binary()
                             ]
                         )
                         | ConditionalExpressionNoIn
                         >> !( ',' >> ExpressionNoIn )
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                         >> ';'
-                        >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] ) 
+                        >> ( Expression | es_epsilon_p[ es_action_nop() ] ) 
                         >> ';'
-                        >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] )
+                        >> ( Expression | es_epsilon_p[ es_action_nop() ] )
                         >> ')'
-                        >> Statement[ es_action_for<const_string_t::const_iterator>() ]
+                        >> Statement[ es_action_for() ]
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                         | "var" >> es_identifier_p
                         [
-                            es_action_nativestring<const_string_t::const_iterator>()
+                            es_action_nativestring()
                         ]
                         >> (
                             ( '=' >> AssignmentExpression )
                             >> (
                                 "in" 
-                                >> es_epsilon_p[ es_action_forinvarinit<const_string_t::const_iterator>() ] 
+                                >> es_epsilon_p[ es_action_forinvarinit() ] 
                                 >> Expression
                                 >> ')'
-                                >> Statement[ es_action_forin<const_string_t::const_iterator>() ]
-                                | es_epsilon_p[ es_action_varinit<const_string_t::const_iterator>() ]
+                                >> Statement[ es_action_forin() ]
+                                | es_epsilon_p[ es_action_varinit() ]
                                 >> *( ',' >> VariableDeclaration )
                                 [
-                                    es_action_binary<const_string_t::const_iterator>()
+                                    es_action_binary()
                                 ]
                                 >> ';'
                                 >> ( 
                                     Expression 
-                                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] 
+                                    | es_epsilon_p[ es_action_nop() ] 
                                 ) 
                                 >> ';'
                                 >> ( 
                                     Expression 
-                                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] 
+                                    | es_epsilon_p[ es_action_nop() ] 
                                 )
                                 >> ')'
-                                >> Statement[ es_action_for<const_string_t::const_iterator>() ]
+                                >> Statement[ es_action_for() ]
                                 [
-                                    es_action_binary<const_string_t::const_iterator>()
+                                    es_action_binary()
                                 ]
                             )
                             | es_epsilon_p
                             >> (
                                 "in"
-                                >> es_epsilon_p[ es_action_forinvar<const_string_t::const_iterator>() ] 
+                                >> es_epsilon_p[ es_action_forinvar() ] 
                                 >> Expression
                                 >> ')'
-                                >> Statement[ es_action_forin<const_string_t::const_iterator>() ]
-                                | es_epsilon_p[ es_action_var<const_string_t::const_iterator>() ]
+                                >> Statement[ es_action_forin() ]
+                                | es_epsilon_p[ es_action_var() ]
                                 >> *( ',' >> VariableDeclaration )
                                 [
-                                    es_action_binary<const_string_t::const_iterator>()
+                                    es_action_binary()
                                 ]
                                 >> ';'
                                 >> ( 
                                     Expression 
-                                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] 
+                                    | es_epsilon_p[ es_action_nop() ] 
                                 ) 
                                 >> ';'
                                 >> ( 
                                     Expression 
-                                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] 
+                                    | es_epsilon_p[ es_action_nop() ] 
                                 )
                                 >> ')'
-                                >> Statement[ es_action_for<const_string_t::const_iterator>() ]
+                                >> Statement[ es_action_for() ]
                                 [
-                                    es_action_binary<const_string_t::const_iterator>()
+                                    es_action_binary()
                                 ]
                             )
                         )
-                        | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                        | es_epsilon_p[ es_action_nop() ]
                         >> ';'
-                        >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] ) 
+                        >> ( Expression | es_epsilon_p[ es_action_nop() ] ) 
                         >> ';'
-                        >> ( Expression | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] )
+                        >> ( Expression | es_epsilon_p[ es_action_nop() ] )
                         >> ')'
-                        >> Statement[ es_action_for<const_string_t::const_iterator>() ]
+                        >> Statement[ es_action_for() ]
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                     )
                 )
@@ -1168,39 +1152,39 @@ namespace ecmascript {
                 >> ( '(' >> Expression >> ')' )
                 >> '{' >> ( CaseClause | DefaultClause )
                 [
-                    es_action_switch<const_string_t::const_iterator>()
+                    es_action_switch()
                 ]
 
             , CaseClause
                 = '}'
-                >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                >> es_epsilon_p[ es_action_nop() ]
                 | "case" >> Expression >> ':'
                 >> (
                     StatementList
-                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                    | es_epsilon_p[ es_action_nop() ]
                 )
                 [
-                    es_action_case<const_string_t::const_iterator>()
+                    es_action_case()
                 ]
                 >> ( CaseClause | DefaultClause )
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
                 
             , CaseClause_AfterDefault
                 = '}'
-                >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                >> es_epsilon_p[ es_action_nop() ]
                 | "case" >> Expression >> ':'
                 >> (
                     StatementList
-                    | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                    | es_epsilon_p[ es_action_nop() ]
                 )
                 [
-                    es_action_case<const_string_t::const_iterator>()
+                    es_action_case()
                 ]
                 >> CaseClause_AfterDefault
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , DefaultClause
@@ -1209,25 +1193,25 @@ namespace ecmascript {
                     ':'
                     >> (
                         StatementList
-                        | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                        | es_epsilon_p[ es_action_nop() ]
                     )
                     >> (
                         CaseClause
                         | es_epsilon_p
                     )
                     [
-                        es_action_default<const_string_t::const_iterator>()
+                        es_action_default()
                     ]
                 )
 
             , LabelledStatement
                 = ( es_identifier_p >> ':' )
                 [
-                    es_action_nativestring<const_string_t::const_iterator>()
+                    es_action_nativestring()
                 ]
                 >> Statement
                 [
-                    es_action_label<const_string_t::const_iterator>()
+                    es_action_label()
                 ]
 
             , ContinueStatementNoIdentifier
@@ -1238,11 +1222,11 @@ namespace ecmascript {
                         >> ( es_line_terminater_ch_p | ';' )
                     ]
                     [
-                        es_action_continuenoarg<const_string_t::const_iterator>()
+                        es_action_continuenoarg()
                     ]
                     | es_identifier_p
                     [
-                        es_action_continue<const_string_t::const_iterator>()
+                        es_action_continue()
                     ]
                 )
                 >> (';' | es_epsilon_p)
@@ -1255,9 +1239,9 @@ namespace ecmascript {
                         >> ( es_line_terminater_ch_p | ';' )
                     ]
                     [
-                        es_action_breaknoarg<const_string_t::const_iterator>()
+                        es_action_breaknoarg()
                     ]
-                    | es_identifier_p[ es_action_break<const_string_t::const_iterator>() ]
+                    | es_identifier_p[ es_action_break() ]
                     >> (';' | es_epsilon_p)
                 )
 
@@ -1269,9 +1253,9 @@ namespace ecmascript {
                         >> ( es_line_terminater_ch_p | ';' )
                     ]
                     [
-                        es_action_returnnoarg<const_string_t::const_iterator>()
+                        es_action_returnnoarg()
                     ]
-                    | Expression[ es_action_return<const_string_t::const_iterator>() ]
+                    | Expression[ es_action_return() ]
                     >> (';' | es_epsilon_p)
                 )
 
@@ -1286,13 +1270,13 @@ namespace ecmascript {
                 ]
                 >> Expression
                 [
-                    es_action_throw<const_string_t::const_iterator>()
+                    es_action_throw()
                 ]
                 >> (';' | es_epsilon_p)
 
             , WithStatement
                 = "with" >> ( '(' >> Expression >> ')' )
-                >> Statement[ es_action_with<const_string_t::const_iterator>() ]
+                >> Statement[ es_action_with() ]
 
             , TryStatement
                 = "try"
@@ -1301,25 +1285,25 @@ namespace ecmascript {
                     "catch"
                     >> (
                         '('
-                        >> es_identifier_p[ es_action_identifier<const_string_t::const_iterator>() ]
+                        >> es_identifier_p[ es_action_identifier() ]
                         >> ')'
                     )
-                    >> Block[ es_action_trycatch<const_string_t::const_iterator>() ]
+                    >> Block[ es_action_trycatch() ]
                     >> !(
                         "finally"
                         >> Block
                         [
-                            es_action_binary<const_string_t::const_iterator>()
+                            es_action_binary()
                         ]
                     )
-                    | "finally" >> Block[ es_action_tryfinally<const_string_t::const_iterator>() ]
+                    | "finally" >> Block[ es_action_tryfinally() ]
                 )
 
             , StatementList
                 = Statement
                 >> !StatementList
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , Block
@@ -1327,53 +1311,56 @@ namespace ecmascript {
                     '}'
                     >> es_epsilon_p
                     [
-                        es_action_unary<const_string_t::const_iterator>()
+                        es_action_unary()
                     ]
                     | StatementList >> '}'
                 )
 
             , FunctionDeclaration
                 = "function" >> (
-                    es_identifier_p[ es_action_identifier<const_string_t::const_iterator>() ]
+                    es_identifier_p[ es_action_identifier() ]
                     >> (
                         FormalParameterList
                         | illegal_formal_parameter_list_p
-                    )[ es_action_assign<const_string_t::const_iterator>() ]
+                    )[ es_action_assign() ]
                 )
 
             , FunctionExpression
                 = "function" >> (
                     FormalParameterList
                     | (
-                        es_identifier_p[ es_action_identifier<const_string_t::const_iterator>() ]
+                        es_identifier_p[ es_action_identifier() ]
                         >> FormalParameterList
-                    )[ es_action_assign<const_string_t::const_iterator>() ]
+                    )[ es_action_assign() ]
                     | illegal_function_expression_p
                 )
 
             , FormalParameterList
-                = '(' 
-                >> ( ')' >> es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ] | Parameter )
+                = (
+                    '(' 
+                    | illegal_formal_parameter_list_start_bracket_not_found_p
+                )
+                >> ( ')' >> es_epsilon_p[ es_action_nop() ] | Parameter )
                 >> (
                     '{' 
                     | illegal_function_body_block_start_bracket_not_found_p
                 )
                 >> FunctionBody
                 [ 
-                    es_action_functionbody<const_string_t::const_iterator>() 
+                    es_action_functionbody() 
                 ]
                 [ 
-                    es_action_function<const_string_t::const_iterator>() 
+                    es_action_function() 
                 ]
 
             , Parameter
                 = 
-                es_identifier_p[ es_action_parameter<const_string_t::const_iterator>() ]
+                es_identifier_p[ es_action_parameter() ]
                 >> (
                     ')'
                     | (
                         ',' >> (
-                            Parameter[ es_action_binary<const_string_t::const_iterator>() ]
+                            Parameter[ es_action_binary() ]
                             | illegal_formal_parameter_list_unknown_token_p
                         )
                     )
@@ -1383,7 +1370,7 @@ namespace ecmascript {
                 = '}'
                 >> es_epsilon_p
                 [
-                    es_action_nop<const_string_t::const_iterator>()
+                    es_action_nop()
                 ]
                 | (
                     FunctionDeclaration
@@ -1392,7 +1379,7 @@ namespace ecmascript {
                 )
                 >> FunctionBody
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , SourceElements
@@ -1403,12 +1390,12 @@ namespace ecmascript {
                 )
                 >> !SourceElements
                 [
-                    es_action_binary<const_string_t::const_iterator>()
+                    es_action_binary()
                 ]
 
             , InputText
                 = SourceElements
-                | es_epsilon_p[ es_action_nop<const_string_t::const_iterator>() ]
+                | es_epsilon_p[ es_action_nop() ]
                 >> es_lexeme_d[ *es_line_terminater_ch_p ]
             ;
         }
@@ -1437,6 +1424,7 @@ namespace ecmascript {
         , PostfixExpression
         , PostfixExpressionAfterLhs
         , UnaryExpression
+        , UnaryExpressionAfterLhs
         , MultiplicativeExpression
         , MultiplicativeExpressionAfterLhs
         , AdditiveExpression
@@ -1537,7 +1525,7 @@ namespace ecmascript {
                 iteratorT, 
                 scanner_policies_t> const scanner_t;
 #if ES_TRACE_PARSING_TIME
-            clock_t t = clock();
+            std::clock_t t = std::clock();
 #endif // ES_TRACE_PARSING_TIME
             static program_parser<scanner_t> const program_parser_;
             iter_policy_t const iter_policy(es_skip_p);
@@ -1550,8 +1538,8 @@ namespace ecmascript {
 #if ES_TRACE_PARSING_TIME
                 wprintf(
                     L"parse: %.3f\n", 
-                    double(clock() - t) / CLOCKS_PER_SEC);
-                return es_semantic_action_base<const_string_t::const_iterator>().pop();
+                    double(std::clock() - t) / CLOCKS_PER_SEC);
+                return es_semantic_action_base().pop();
 #endif // ES_TRACE_PARSING_TIME
  
             default:            
@@ -1578,7 +1566,7 @@ namespace ecmascript {
             ES_ASSERT(es_success == result);
             base_services::es_puts(line);
             wprintf(L"\n%s^\n", colmn_number ?
-                const_string_t(colmn_number - 1, L' ').c_str(): L"");
+                std::wstring(colmn_number - 1, L' ').c_str(): L"");
             result = es_con_green();
             ES_ASSERT(es_success == result);
             base_services::es_puts(message);
@@ -1596,7 +1584,7 @@ namespace ecmascript {
             ) const
         {
             wprintf(L"parse error\n");
-            typedef const_string_t string_t;
+            typedef std::wstring string_t;
             unsigned int line_number = 0, colmn_number = 0;
             wchar_t const *it = begin, *start_of_line = begin;
             for (;it != position && it != end; ++it, ++colmn_number)
