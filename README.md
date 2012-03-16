@@ -1,7 +1,8 @@
 zuse - A Fuzzy ECMAScript Implementation.
 =========================================
 
-#Supporting platforms
+Supported platforms
+--------------------
 
     WINNT-i386-MSVC    - supports JIT, IActiveScript
     WINNT-x86_64-MSVC 
@@ -11,4 +12,9 @@ zuse - A Fuzzy ECMAScript Implementation.
     Linux-i386-gcc     - supports JIT
     Linux-x86_64-gcc
 
+INSTALL
+-------
+
+./configure && make
+sudo make install
 
